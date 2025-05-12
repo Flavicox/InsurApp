@@ -1,10 +1,10 @@
 package com.flavicox.insurapp.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.flavicox.insurapp.screens.HorarioScreen
 import com.flavicox.insurapp.screens.ListScreen
 import com.flavicox.insurapp.screens.LoginScreen
 import com.flavicox.insurapp.screens.RegisterScreen
@@ -25,6 +25,9 @@ fun AppNavigation() {
         }
         composable(AppScreens.ListScreen.route) {
             ListScreen(navController)
+        }
+        composable(AppScreens.HorarioScreen.route) {
+            HorarioScreen(navController)
         }
     }
 }
