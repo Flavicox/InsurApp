@@ -32,9 +32,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
+import com.flavicox.insurapp.model.RegisterRequest
 import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.AuthViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -44,12 +47,17 @@ fun RegisterSecondScreen(navController: NavController) {
     }
 }
 
+var userEmail = ""
+var userPassword = ""
+
 @Composable
 fun RegisterSecondBody(navController: NavController) {
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var dni by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
+
+    val viewModel: AuthViewModel = viewModel()
 
     Column(
         modifier = Modifier
@@ -140,7 +148,19 @@ fun RegisterSecondBody(navController: NavController) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Button(
-                onClick = { navController.navigate(route = AppScreens.ListScreen.route) },
+                onClick = {
+                    val request = RegisterRequest(
+                        name = nombre,
+                        surname = apellido,
+                        dni = dni,
+                        phone = telefono,
+                        email = userEmail,
+                        password = userPassword
+                    )
+                    viewModel.registerUser(request) {
+                        navController.navigate(AppScreens.ValidateCodeScreen.route)
+                    }
+                },
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),

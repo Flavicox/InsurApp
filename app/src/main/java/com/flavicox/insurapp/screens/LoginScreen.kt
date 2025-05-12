@@ -11,14 +11,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.AuthViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -34,6 +39,13 @@ fun LoginBodyComponent(navController: NavController){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return AuthViewModel(context) as T
+        }
+    })
 
     Column(
         modifier = Modifier
@@ -100,12 +112,17 @@ fun LoginBodyComponent(navController: NavController){
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { navController.navigate(route = AppScreens.ListScreen.route) },
+            onClick = {
+                viewModel.login(email, password) {
+                    navController.navigate(AppScreens.ListScreen.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71))
         ) {
             Text("Iniciar Sesión")
         }
+
 
         Spacer(modifier = Modifier.height(16.dp))
 

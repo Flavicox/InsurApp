@@ -2,6 +2,7 @@ package com.flavicox.insurapp.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,13 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
@@ -42,11 +53,20 @@ fun ListScreen(navController: NavController){
 }
 
 @Composable
-fun ListBodyComponent(navController: NavController){
+fun ListBodyComponent(navController: NavController) {
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Column {
-        TopBarCampos()
+        TopBarCampos(
+            nombreUsuario = "Jose Luyo",
+            onLogoutClick = { showLogoutDialog = true }
+        )
+
         TituloSeleccionarCampo()
-        // Lista de tarjetas
+
         CampoCard(
             nombre = "Futbol - Campo 1",
             precio = "S/ 100",
@@ -63,11 +83,38 @@ fun ListBodyComponent(navController: NavController){
             }
         )
     }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Estás seguro que deseas cerrar sesión?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    viewModel.logout()
+                    navController.navigate(AppScreens.LoginScreen.route) {
+                        popUpTo(0)
+                    }
+                }) {
+                    Text("Sí")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
+
 @Composable
-fun TopBarCampos() {
-    val nombreUsuario: String = "Jose Luyo"
+fun TopBarCampos(
+    nombreUsuario: String,
+    onLogoutClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -88,14 +135,16 @@ fun TopBarCampos() {
         )
 
         Icon(
-            painter = painterResource(id = R.drawable.user_icon), // usa el nombre real de tu drawable
-            contentDescription = "Perfil",
+            painter = painterResource(id = R.drawable.baseline_logout_24),
+            contentDescription = "Cerrar sesión",
             modifier = Modifier
                 .size(40.dp)
                 .padding(4.dp)
+                .clickable { onLogoutClick() }
         )
     }
 }
+
 
 @Composable
 fun TituloSeleccionarCampo() {

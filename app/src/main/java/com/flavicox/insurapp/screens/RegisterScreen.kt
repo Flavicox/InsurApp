@@ -93,6 +93,9 @@ fun RegisterFormStepOne() {
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
+    userEmail = email
+    userPassword = password
+
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = email,
