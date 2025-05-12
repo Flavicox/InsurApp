@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
+import com.flavicox.insurapp.navigation.AppScreens
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -139,7 +140,7 @@ fun RegisterSecondBody(navController: NavController) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Button(
-                onClick = { /* Llleva a la pantalla de Seleccionar Campo */ },
+                onClick = { navController.navigate(route = AppScreens.ListScreen.route) },
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),

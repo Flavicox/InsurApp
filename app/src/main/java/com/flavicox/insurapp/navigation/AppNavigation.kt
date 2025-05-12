@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.flavicox.insurapp.screens.ListScreen
 import com.flavicox.insurapp.screens.LoginScreen
 import com.flavicox.insurapp.screens.RegisterScreen
 import com.flavicox.insurapp.screens.RegisterSecondScreen
@@ -21,6 +22,9 @@ fun AppNavigation() {
         }
         composable(AppScreens.RegisterSecondScreen.route) {
             RegisterSecondScreen(navController)
+        }
+        composable(AppScreens.ListScreen.route) {
+            ListScreen(navController)
         }
     }
 }

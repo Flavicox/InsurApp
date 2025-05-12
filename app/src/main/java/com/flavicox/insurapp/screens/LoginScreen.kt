@@ -101,7 +101,7 @@ fun LoginBodyComponent(navController: NavController){
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { navController.navigate(route = AppScreens.LoginScreen.route) },
+            onClick = { navController.navigate(route = AppScreens.ListScreen.route) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71))
         ) {
