@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
+import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 import java.text.SimpleDateFormat
@@ -32,7 +33,14 @@ import java.util.*
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun HorarioScreen(navController: NavController, fieldId: Int, fieldTitle: String) {
+fun HorarioScreen(
+    navController: NavController,
+    fieldId: Int,
+    fieldTitle: String,
+    fieldPrice: Int,
+    typeField: String,
+    numberField: Int
+) {
     val context = LocalContext.current
     val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
     val horarios by fieldsViewModel.availableTimes.collectAsState()
@@ -56,7 +64,13 @@ fun HorarioScreen(navController: NavController, fieldId: Int, fieldTitle: String
             onDaySelected = { selectedDayIndex = it }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        BloquesHorario(horarios)
+        BloquesHorario(
+            horarios = horarios,
+            fieldType = fieldTitle.split(" - ")[0],
+            fieldNumber = fieldTitle.split(" - ")[1].split(" ")[1].toInt(),
+            selectedDate = selectedDate,
+            navController = navController
+        )
     }
 }
 
@@ -179,14 +193,47 @@ fun DaySelectorClassic(
 }
 
 @Composable
-fun BloquesHorario(horarios: List<String>) {
+fun BloquesHorario(
+    horarios: List<String>,
+    fieldType: String,
+    fieldNumber: Int,
+    selectedDate: String,
+    navController: NavController
+) {
     val scrollState = rememberScrollState()
+    var horarioSeleccionado by remember { mutableStateOf<String?>(null) }
+
+    // Modal
+    if (horarioSeleccionado != null) {
+        AlertDialog(
+            onDismissRequest = { horarioSeleccionado = null },
+            title = { Text("Confirmar Reserva") },
+            text = {
+                Text("¿Deseas hacer la reserva del Campo $fieldNumber de $fieldType el día $selectedDate en el horario de ${horarioSeleccionado}?")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+//                    navController.navigate(
+//                        "${AppScreens.ResumenReservaScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}"
+//                    )
+                    horarioSeleccionado = null
+                }) {
+                    Text("Sí")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { horarioSeleccionado = null }) {
+                    Text("No")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .height(600.dp) // puedes ajustar esto según tu diseño
+            .height(600.dp)
             .verticalScroll(scrollState)
     ) {
         horarios.forEach { hora ->
@@ -195,13 +242,14 @@ fun BloquesHorario(horarios: List<String>) {
                     .fillMaxWidth()
                     .height(48.dp)
                     .border(1.dp, Color(0xFF0A0A23))
+                    .clickable { horarioSeleccionado = hora },
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = hora,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 12.dp)
-                        .align(Alignment.CenterVertically),
+                        .padding(start = 12.dp),
                     fontSize = 14.sp
                 )
                 Spacer(
@@ -213,3 +261,4 @@ fun BloquesHorario(horarios: List<String>) {
         }
     }
 }
+

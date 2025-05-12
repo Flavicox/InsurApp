@@ -93,9 +93,8 @@ fun ListBodyComponent(navController: NavController) {
                     precio = precio,
                     onReservarClick = {
                         navController.navigate(
-                            "${AppScreens.HorarioScreen.route}/${campo.fieldId}/${nombre}"
+                            "${AppScreens.HorarioScreen.route}/${campo.fieldId}/${campo.price}/${campo.typeField}/${campo.numberField}"
                         )
-
                     }
                 )
             }

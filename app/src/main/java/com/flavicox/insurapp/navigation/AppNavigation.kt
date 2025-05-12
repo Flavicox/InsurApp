@@ -49,18 +49,23 @@ fun AppNavigation() {
                 ValidateCodeScreen(navController)
             }
             composable(
-                "${AppScreens.HorarioScreen.route}/{fieldId}/{fieldTitle}",
-                arguments = listOf(
-                    navArgument("fieldId") { type = NavType.IntType },
-                    navArgument("fieldTitle") { type = NavType.StringType }
-                )
+                "${AppScreens.HorarioScreen.route}/{fieldId}/{price}/{typeField}/{numberField}"
             ) { backStackEntry ->
-                val fieldId = backStackEntry.arguments?.getInt("fieldId") ?: 0
-                val fieldTitle = backStackEntry.arguments?.getString("fieldTitle") ?: ""
-                HorarioScreen(navController, fieldId, fieldTitle)
+                val fieldId = backStackEntry.arguments?.getString("fieldId")?.toInt() ?: 0
+                val price = backStackEntry.arguments?.getString("price")?.toInt() ?: 0
+                val typeField = backStackEntry.arguments?.getString("typeField") ?: ""
+                val numberField = backStackEntry.arguments?.getString("numberField")?.toInt() ?: 0
+                val title = "$typeField - Campo $numberField"
+
+                HorarioScreen(
+                    navController = navController,
+                    fieldId = fieldId,
+                    fieldTitle = title,
+                    fieldPrice = price,
+                    typeField = typeField,
+                    numberField = numberField
+                )
             }
-
-
         }
     }
 }
