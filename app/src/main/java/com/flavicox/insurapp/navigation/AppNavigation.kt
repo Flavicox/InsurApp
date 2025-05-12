@@ -3,7 +3,9 @@ package com.flavicox.insurapp.navigation
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.flavicox.insurapp.screens.*
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
@@ -46,9 +48,19 @@ fun AppNavigation() {
             composable(AppScreens.ValidateCodeScreen.route) {
                 ValidateCodeScreen(navController)
             }
-            composable(AppScreens.HorarioScreen.route) {
-                HorarioScreen(navController)
+            composable(
+                "${AppScreens.HorarioScreen.route}/{fieldId}/{fieldTitle}",
+                arguments = listOf(
+                    navArgument("fieldId") { type = NavType.IntType },
+                    navArgument("fieldTitle") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val fieldId = backStackEntry.arguments?.getInt("fieldId") ?: 0
+                val fieldTitle = backStackEntry.arguments?.getString("fieldTitle") ?: ""
+                HorarioScreen(navController, fieldId, fieldTitle)
             }
+
+
         }
     }
 }

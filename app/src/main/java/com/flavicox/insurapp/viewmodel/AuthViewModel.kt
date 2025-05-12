@@ -87,18 +87,4 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             prefs.clearToken()
         }
     }
-
-    fun loadFields() {
-        viewModelScope.launch {
-            try {
-                val token = prefs.getToken()
-                if (!token.isNullOrEmpty()) {
-                    val response = RetrofitInstance.authApi.getAvailableFields("Bearer $token")
-                    fields.value = response
-                }
-            } catch (e: Exception) {
-                println("❌ Error al cargar campos: ${e.message}")
-            }
-        }
-    }
 }

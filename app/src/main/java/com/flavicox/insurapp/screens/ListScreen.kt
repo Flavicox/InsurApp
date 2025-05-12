@@ -47,6 +47,8 @@ import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.flavicox.insurapp.viewmodel.FieldsViewModel
+import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -63,13 +65,15 @@ fun ListBodyComponent(navController: NavController) {
 
     var showLogoutDialog by remember { mutableStateOf(false) }
     val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
-    val campos by viewModel.fields
 
     val scrollState = rememberScrollState()
 
+    val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
+    val campos by fieldsViewModel.fields.collectAsState()
+
     // Cargar campos al entrar por primera vez
     LaunchedEffect(Unit) {
-        viewModel.loadFields()
+        fieldsViewModel.loadFields()
     }
 
     Column {
@@ -88,7 +92,10 @@ fun ListBodyComponent(navController: NavController) {
                     nombre = nombre,
                     precio = precio,
                     onReservarClick = {
-                        navController.navigate(route = AppScreens.HorarioScreen.route)
+                        navController.navigate(
+                            "${AppScreens.HorarioScreen.route}/${campo.fieldId}/${nombre}"
+                        )
+
                     }
                 )
             }

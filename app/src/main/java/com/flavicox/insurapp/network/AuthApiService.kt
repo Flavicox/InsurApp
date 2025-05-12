@@ -11,6 +11,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface AuthApiService {
@@ -30,4 +31,10 @@ interface AuthApiService {
     @GET("api/fields/search")
     suspend fun getAvailableFields(@Header("Authorization") token: String): List<Field>
 
+    @GET("/api/fields/{fieldId}/available-times")
+    suspend fun getAvailableTimes(
+        @Path("fieldId") fieldId: Int,
+        @Query("bookingDate") bookingDate: String,
+        @Header("Authorization") token: String
+    ): List<String>
 }

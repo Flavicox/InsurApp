@@ -5,67 +5,58 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
+import com.flavicox.insurapp.viewmodel.FieldsViewModel
+import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.util.*
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun HorarioScreen(navController: NavController){
-    Scaffold {
-        HorarioBodyComponent(navController)
-    }
-}
+fun HorarioScreen(navController: NavController, fieldId: Int, fieldTitle: String) {
+    val context = LocalContext.current
+    val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
+    val horarios by fieldsViewModel.availableTimes.collectAsState()
+    var selectedDayIndex by remember { mutableStateOf(0) }
 
-@Composable
-fun HorarioBodyComponent(navController: NavController){
+    val calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_YEAR, selectedDayIndex)
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val selectedDate = dateFormat.format(calendar.time)
+
+    LaunchedEffect(selectedDayIndex) {
+        fieldsViewModel.getAvailableTimes(fieldId, selectedDate)
+    }
+
     Column {
         HeaderCampos()
-        TituloCampo()
+        TituloCampo(fieldTitle)
         BotonRegresar(navController)
-        var selectedDayIndex by remember { mutableStateOf(0) }
-
         DaySelectorClassic(
             selectedIndex = selectedDayIndex,
             onDaySelected = { selectedDayIndex = it }
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        BloquesHorario()
+        BloquesHorario(horarios)
     }
 }
 
@@ -91,7 +82,7 @@ fun HeaderCampos(nombreUsuario: String = "Jose Luyo") {
         )
 
         Icon(
-            painter = painterResource(id = R.drawable.user_icon), // usa el nombre real de tu drawable
+            painter = painterResource(id = R.drawable.user_icon),
             contentDescription = "Perfil",
             modifier = Modifier
                 .size(40.dp)
@@ -101,9 +92,9 @@ fun HeaderCampos(nombreUsuario: String = "Jose Luyo") {
 }
 
 @Composable
-fun TituloCampo() {
+fun TituloCampo(title: String) {
     Text(
-        text = "Futbol - Campo 1",
+        text = title,
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
@@ -115,9 +106,7 @@ fun TituloCampo() {
 
 @Composable
 fun BotonRegresar(navController: NavController) {
-    TextButton(
-        onClick = { navController.popBackStack() },
-    ) {
+    TextButton(onClick = { navController.popBackStack() }) {
         Icon(
             imageVector = Icons.Default.ArrowBack,
             contentDescription = "Regresar",
@@ -190,19 +179,17 @@ fun DaySelectorClassic(
 }
 
 @Composable
-fun BloquesHorario() {
-    val bloques = listOf(
-        "08:00 - 09:00",
-        "09:00 - 10:00",
-        "11:00 - 12:00"
-    )
+fun BloquesHorario(horarios: List<String>) {
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
+            .height(600.dp) // puedes ajustar esto según tu diseño
+            .verticalScroll(scrollState)
     ) {
-        bloques.forEach { hora ->
+        horarios.forEach { hora ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,7 +204,6 @@ fun BloquesHorario() {
                         .align(Alignment.CenterVertically),
                     fontSize = 14.sp
                 )
-                // Columna vacía a la derecha (puedes llenarla luego)
                 Spacer(
                     modifier = Modifier
                         .weight(1f)
@@ -226,13 +212,4 @@ fun BloquesHorario() {
             }
         }
     }
-}
-
-@Preview(
-    showBackground = true,
-    backgroundColor = 0xFFFFFFFF
-)
-@Composable
-fun PreviewBloquesHorario() {
-    BloquesHorario()
 }
