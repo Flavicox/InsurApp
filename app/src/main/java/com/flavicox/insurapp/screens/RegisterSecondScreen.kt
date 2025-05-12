@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +39,7 @@ import com.flavicox.insurapp.R
 import com.flavicox.insurapp.model.RegisterRequest
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -57,7 +59,9 @@ fun RegisterSecondBody(navController: NavController) {
     var dni by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
 
-    val viewModel: AuthViewModel = viewModel()
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+
 
     Column(
         modifier = Modifier

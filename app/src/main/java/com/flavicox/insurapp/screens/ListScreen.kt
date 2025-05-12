@@ -24,6 +24,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +45,8 @@ import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -58,30 +62,37 @@ fun ListBodyComponent(navController: NavController) {
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
 
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
+    val campos by viewModel.fields
+
+    val scrollState = rememberScrollState()
+
+    // Cargar campos al entrar por primera vez
+    LaunchedEffect(Unit) {
+        viewModel.loadFields()
+    }
 
     Column {
         TopBarCampos(
-            nombreUsuario = "Jose Luyo",
+            nombreUsuario = fullName,
             onLogoutClick = { showLogoutDialog = true }
         )
 
         TituloSeleccionarCampo()
 
-        CampoCard(
-            nombre = "Futbol - Campo 1",
-            precio = "S/ 100",
-            onReservarClick = {
-                navController.navigate(route = AppScreens.HorarioScreen.route)
+        Column (modifier = Modifier.verticalScroll(scrollState)) {
+            campos.forEach { campo ->
+                val nombre = "${campo.typeField} - Campo ${campo.numberField}"
+                val precio = "S/. ${campo.price}"
+                CampoCard(
+                    nombre = nombre,
+                    precio = precio,
+                    onReservarClick = {
+                        navController.navigate(route = AppScreens.HorarioScreen.route)
+                    }
+                )
             }
-        )
-
-        CampoCard(
-            nombre = "Voley - Campo 1",
-            precio = "S/ 60",
-            onReservarClick = {
-                navController.navigate(route = AppScreens.HorarioScreen.route)
-            }
-        )
+        }
     }
 
     if (showLogoutDialog) {

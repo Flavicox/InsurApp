@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -20,6 +21,7 @@ import androidx.navigation.NavController
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 
@@ -27,7 +29,9 @@ import com.flavicox.insurapp.viewmodel.AuthViewModel
 fun ValidateCodeScreen(navController: NavController) {
     var code by remember { mutableStateOf("") }
 
-    val viewModel: AuthViewModel = viewModel()
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+
 
     Scaffold {
         Column(

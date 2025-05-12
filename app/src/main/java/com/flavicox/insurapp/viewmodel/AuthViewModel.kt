@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.flavicox.insurapp.model.Field
+import kotlinx.coroutines.flow.Flow
 
 class AuthViewModel(private val context: Context) : ViewModel() {
 
@@ -19,6 +21,12 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     var registrationSuccess by mutableStateOf(false)
     var validationSuccess by mutableStateOf(false)
     var loginError by mutableStateOf<String?>(null)
+
+    val userFullNameFlow: Flow<String> = prefs.userFullNameFlow
+
+    val fields = mutableStateOf<List<Field>>(emptyList())
+
+
 
     fun registerUser(data: RegisterRequest, onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -58,10 +66,14 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             try {
                 val response = RetrofitInstance.authApi.login(LoginRequest(email, password))
                 prefs.saveToken(response.token)
+
+                // Obtener perfil con token
+                val profile = RetrofitInstance.authApi.getUserProfile("Bearer ${response.token}")
+                prefs.saveUserProfile(profile.name, profile.surname)
+
                 onSuccess()
             } catch (e: Exception) {
                 loginError = "Login fallido: ${e.message}"
-                println("❌ Login error: ${e.message}")
             }
         }
     }
@@ -73,6 +85,20 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             prefs.clearToken()
+        }
+    }
+
+    fun loadFields() {
+        viewModelScope.launch {
+            try {
+                val token = prefs.getToken()
+                if (!token.isNullOrEmpty()) {
+                    val response = RetrofitInstance.authApi.getAvailableFields("Bearer $token")
+                    fields.value = response
+                }
+            } catch (e: Exception) {
+                println("❌ Error al cargar campos: ${e.message}")
+            }
         }
     }
 }
