@@ -66,6 +66,59 @@ fun AppNavigation() {
                     numberField = numberField
                 )
             }
+            composable(
+                "${AppScreens.ResumeScreen.route}/{typeField}/{numberField}/{selectedDate}/{selectedTime}",
+                arguments = listOf(
+                    navArgument("typeField") { type = NavType.StringType },
+                    navArgument("numberField") { type = NavType.IntType },
+                    navArgument("selectedDate") { type = NavType.StringType },
+                    navArgument("selectedTime") { type = NavType.StringType },
+                    navArgument("price") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val typeField = backStackEntry.arguments?.getString("typeField") ?: ""
+                val numberField = backStackEntry.arguments?.getInt("numberField") ?: 0
+                val selectedDate = backStackEntry.arguments?.getString("selectedDate") ?: ""
+                val selectedTime = backStackEntry.arguments?.getString("selectedTime") ?: ""
+                val price = backStackEntry.arguments?.getInt("price") ?: 0
+
+                ResumeScreen(
+                    navController,
+                    typeField,
+                    numberField,
+                    selectedDate,
+                    selectedTime,
+                    price
+                )
+            }
+            composable(
+                "${AppScreens.PaymentScreen.route}/{fieldLabel}/{date}/{time}/{price}/{isHalfPayment}",
+                arguments = listOf(
+                    navArgument("fieldLabel") { type = NavType.StringType },
+                    navArgument("date") { type = NavType.StringType },
+                    navArgument("time") { type = NavType.StringType },
+                    navArgument("price") { type = NavType.IntType },
+                    navArgument("isHalfPayment") { type = NavType.BoolType }
+                )
+            ) { backStackEntry ->
+                val fieldLabel = backStackEntry.arguments?.getString("fieldLabel") ?: ""
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+                val time = backStackEntry.arguments?.getString("time") ?: ""
+                val price = backStackEntry.arguments?.getInt("price") ?: 0
+                val isHalfPayment = backStackEntry.arguments?.getBoolean("isHalfPayment") ?: false
+
+                PaymentScreen(
+                    navController = navController,
+                    fieldLabel = fieldLabel,
+                    date = date,
+                    time = time,
+                    price = price,
+                    isHalfPayment = isHalfPayment
+                )
+            }
+            composable(AppScreens.ConfirmationScreen.route) {
+                ConfirmationScreen(navController)
+            }
         }
     }
 }

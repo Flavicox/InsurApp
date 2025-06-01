@@ -69,13 +69,14 @@ fun HorarioScreen(
             fieldType = fieldTitle.split(" - ")[0],
             fieldNumber = fieldTitle.split(" - ")[1].split(" ")[1].toInt(),
             selectedDate = selectedDate,
-            navController = navController
+            navController = navController,
+            fieldPrice = fieldPrice
         )
     }
 }
 
 @Composable
-fun HeaderCampos(nombreUsuario: String = "Jose Luyo") {
+fun HeaderCampos(nombreUsuario: String = "Jose Luyo") /*SIGUE USANDO DATOS SIMULADOS*/{
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,7 +199,8 @@ fun BloquesHorario(
     fieldType: String,
     fieldNumber: Int,
     selectedDate: String,
-    navController: NavController
+    navController: NavController,
+    fieldPrice: Int
 ) {
     val scrollState = rememberScrollState()
     var horarioSeleccionado by remember { mutableStateOf<String?>(null) }
@@ -212,10 +214,8 @@ fun BloquesHorario(
                 Text("¿Deseas hacer la reserva del Campo $fieldNumber de $fieldType el día $selectedDate en el horario de ${horarioSeleccionado}?")
             },
             confirmButton = {
-                TextButton(onClick = {
-//                    navController.navigate(
-//                        "${AppScreens.ResumenReservaScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}"
-//                    )
+                TextButton(onClick = { navController.navigate(
+                    "${AppScreens.ResumeScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}/$fieldPrice")
                     horarioSeleccionado = null
                 }) {
                     Text("Sí")

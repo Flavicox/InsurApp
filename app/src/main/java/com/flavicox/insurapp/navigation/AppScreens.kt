@@ -8,4 +8,7 @@ sealed class AppScreens(val route: String){
     object ValidateCodeScreen: AppScreens("validate_code_screen")
     object HorarioScreen: AppScreens("horario_screen")
     object SplashScreen : AppScreens("splash_screen")
+    object ResumeScreen : AppScreens("resumen_reserva_screen")
+    object PaymentScreen : AppScreens("payment_screen")
+    object ConfirmationScreen : AppScreens("confirmation_screen")
 }
