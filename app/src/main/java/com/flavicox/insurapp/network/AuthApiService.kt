@@ -4,6 +4,7 @@ import com.flavicox.insurapp.model.Field
 import com.flavicox.insurapp.model.LoginRequest
 import com.flavicox.insurapp.model.LoginResponse
 import com.flavicox.insurapp.model.RegisterRequest
+import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.model.UserProfile
 import retrofit2.Response
 import retrofit2.http.Body
@@ -31,12 +32,13 @@ interface AuthApiService {
     @GET("api/fields/search")
     suspend fun getAvailableFields(@Header("Authorization") token: String): List<Field>
 
+    // Cambio: ahora devuelve List<TimeSlot>
     @GET("/api/fields/{fieldId}/available-times")
     suspend fun getAvailableTimes(
         @Path("fieldId") fieldId: Int,
         @Query("bookingDate") bookingDate: String,
         @Header("Authorization") token: String
-    ): List<String>
+    ): List<TimeSlot>
 
     // --- Nuevo: obtener datos de un campo por su ID ---
     @GET("api/fields/{fieldId}")

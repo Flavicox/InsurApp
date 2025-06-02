@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
+import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
@@ -44,6 +45,7 @@ fun HorarioScreen(
     val context = LocalContext.current
     val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
     val horarios by fieldsViewModel.availableTimes.collectAsState()
+
     var selectedDayIndex by remember { mutableStateOf(0) }
 
     val calendar = Calendar.getInstance()
@@ -66,8 +68,8 @@ fun HorarioScreen(
         Spacer(modifier = Modifier.height(16.dp))
         BloquesHorario(
             horarios = horarios,
-            fieldType = fieldTitle.split(" - ")[0],
-            fieldNumber = fieldTitle.split(" - ")[1].split(" ")[1].toInt(),
+            fieldType = typeField,
+            fieldNumber = numberField,
             selectedDate = selectedDate,
             navController = navController,
             fieldPrice = fieldPrice
@@ -76,7 +78,7 @@ fun HorarioScreen(
 }
 
 @Composable
-fun HeaderCampos(nombreUsuario: String = "Jose Luyo") /*SIGUE USANDO DATOS SIMULADOS*/{
+fun HeaderCampos(nombreUsuario: String = "José Luyo") {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,7 +197,7 @@ fun DaySelectorClassic(
 
 @Composable
 fun BloquesHorario(
-    horarios: List<String>,
+    horarios: List<TimeSlot>,
     fieldType: String,
     fieldNumber: Int,
     selectedDate: String,
@@ -205,17 +207,22 @@ fun BloquesHorario(
     val scrollState = rememberScrollState()
     var horarioSeleccionado by remember { mutableStateOf<String?>(null) }
 
-    // Modal
+    // Modal de confirmación de reserva
     if (horarioSeleccionado != null) {
         AlertDialog(
             onDismissRequest = { horarioSeleccionado = null },
             title = { Text("Confirmar Reserva") },
             text = {
-                Text("¿Deseas hacer la reserva del Campo $fieldNumber de $fieldType el día $selectedDate en el horario de ${horarioSeleccionado}?")
+                Text(
+                    "¿Deseas hacer la reserva del Campo $fieldNumber de $fieldType el día " +
+                            "$selectedDate en el horario de $horarioSeleccionado?"
+                )
             },
             confirmButton = {
-                TextButton(onClick = { navController.navigate(
-                    "${AppScreens.ResumeScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}/$fieldPrice")
+                TextButton(onClick = {
+                    navController.navigate(
+                        "${AppScreens.ResumeScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}/$fieldPrice"
+                    )
                     horarioSeleccionado = null
                 }) {
                     Text("Sí")
@@ -236,29 +243,46 @@ fun BloquesHorario(
             .height(600.dp)
             .verticalScroll(scrollState)
     ) {
-        horarios.forEach { hora ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .border(1.dp, Color(0xFF0A0A23))
-                    .clickable { horarioSeleccionado = hora },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = hora,
+        horarios.forEach { slot ->
+            if (slot.reserved) {
+                // Estado “reservado”: fondo verde + nombre del cliente
+                Row(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .background(Color(0xFF2ECC71))
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = slot.time,
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = slot.client ?: "",
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                // Estado “libre”: borde y clicable para reservar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .border(1.dp, Color(0xFF0A0A23))
+                        .clickable { horarioSeleccionado = slot.time }
                         .padding(start = 12.dp),
-                    fontSize = 14.sp
-                )
-                Spacer(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = slot.time, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
-

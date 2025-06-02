@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flavicox.insurapp.datastore.UserPreferences
 import com.flavicox.insurapp.model.Field
+import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.network.RetrofitInstance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
 
 class FieldsViewModel(private val context: Context) : ViewModel() {
 
@@ -16,9 +18,9 @@ class FieldsViewModel(private val context: Context) : ViewModel() {
     private val _fields = MutableStateFlow<List<Field>>(emptyList())
     val fields: StateFlow<List<Field>> = _fields
 
-    private val _availableTimes = MutableStateFlow<List<String>>(emptyList())
-    val availableTimes: StateFlow<List<String>> = _availableTimes
-
+    // Cambiado a List<TimeSlot> en lugar de List<String>
+    private val _availableTimes = MutableStateFlow<List<TimeSlot>>(emptyList())
+    val availableTimes: StateFlow<List<TimeSlot>> = _availableTimes
 
     fun loadFields() {
         viewModelScope.launch {
@@ -39,13 +41,22 @@ class FieldsViewModel(private val context: Context) : ViewModel() {
             try {
                 val token = prefs.getToken()
                 if (!token.isNullOrEmpty()) {
-                    val response = RetrofitInstance.authApi.getAvailableTimes(fieldId, date, "Bearer $token")
+                    val bearer = "Bearer $token"
+                    // Ahora recibe List<TimeSlot>
+                    val response: List<TimeSlot> =
+                        RetrofitInstance.authApi.getAvailableTimes(fieldId, date, bearer)
                     _availableTimes.value = response
                 }
             } catch (e: Exception) {
                 println("❌ Error al obtener horarios: ${e.message}")
+                _availableTimes.value = emptyList()
             }
         }
     }
-
 }
+
+
+
+
+
+
