@@ -91,4 +91,6 @@ dependencies {
 
     // Accompanist para manejo de permisos
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
+    implementation ("io.coil-kt:coil-compose:2.4.0")
 }

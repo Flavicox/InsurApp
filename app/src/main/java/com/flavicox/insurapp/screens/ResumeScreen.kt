@@ -1,6 +1,6 @@
 package com.flavicox.insurapp.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,43 +9,47 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.flavicox.insurapp.R
+import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.FieldDetailViewModel
+import com.flavicox.insurapp.viewmodel.FieldDetailViewModelFactory
 
 @Composable
 fun ResumeScreen(
     navController: NavController,
-    typeField: String,
-    numberField: Int,
+    fieldId: Int,
     selectedDate: String,
-    selectedTime: String,
-    price: Int
+    selectedTime: String
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current  //ESTE ES PARA EL PREVIEW
-    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    //val userFullName by authViewModel.userFullNameFlow.collectAsState(initial = "")   PENSE QUE SERVIRIA PARA INTEGRAR
+    val context = LocalContext.current
 
-    // Datos imulados
-    val phone = "987654321"
-    val email = "usuario@example.com"
-    val userFullName = "Jose Luyo"
+    // ViewModel para detalles del campo
+    val fieldDetailVM: FieldDetailViewModel =
+        viewModel(factory = FieldDetailViewModelFactory(context))
+    val fieldDetail by fieldDetailVM.fieldDetail.collectAsState()
+
+    // ViewModel de autenticación para obtener nombre, teléfono y correo
+    val authViewModel: AuthViewModel =
+        viewModel(factory = AuthViewModelFactory(context))
+    val userFullName by authViewModel.userFullNameFlow.collectAsState(initial = "")
+    val userPhone    by authViewModel.userPhoneFlow.collectAsState(initial = "")
+    val userEmail    by authViewModel.userEmailFlow.collectAsState(initial = "")
+
+    // Cargar datos del campo al iniciarse
+    LaunchedEffect(fieldId) {
+        fieldDetailVM.loadField(fieldId)
+    }
 
     Column(
         modifier = Modifier
@@ -76,14 +80,24 @@ fun ResumeScreen(
 
         Spacer(modifier = Modifier.height(15.dp))
 
+        // Si aún no llegó fieldDetail, mostramos placeholders
+        val typeFieldText   = fieldDetail?.typeField ?: "Cargando..."
+        val numberFieldText = fieldDetail?.numberField ?: 0
+        val priceText       = fieldDetail?.price ?: 0
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text("Tipo de Campo", fontSize = 14.sp, color = Color.Gray)
-                Text(typeField)  //VIENE DEL HORARIOSCREEN
+                Text(typeFieldText)
             }
-            Column (Modifier.size(width = 200.dp, height = 30.dp).padding(start = 40.dp)){
+            Column(
+                Modifier
+                    .width(200.dp)
+                    .height(30.dp)
+                    .padding(start = 40.dp)
+            ) {
                 Text("Número de Campo", fontSize = 14.sp, color = Color.Gray)
-                Text("Campo $numberField") //VIENE DEL HORARIOCREEN
+                Text("Campo $numberFieldText")
             }
         }
 
@@ -92,11 +106,25 @@ fun ResumeScreen(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text("Fecha", fontSize = 14.sp, color = Color.Gray)
-                Text(selectedDate)  //VIENE DEL HORARIO SCREEN
+                Text(selectedDate)
             }
-            Column (Modifier.size(width = 200.dp, height = 30.dp).padding(start = 40.dp)){
+            Column(
+                Modifier
+                    .width(200.dp)
+                    .height(30.dp)
+                    .padding(start = 40.dp)
+            ) {
                 Text("Hora", fontSize = 14.sp, color = Color.Gray)
-                Text(selectedTime)  // VIENE DEL HORARIO SCREEN
+                Text(selectedTime)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            Column {
+                Text("Precio", fontSize = 14.sp, color = Color.Gray)
+                Text("S/. $priceText")
             }
         }
 
@@ -106,13 +134,13 @@ fun ResumeScreen(
         Spacer(modifier = Modifier.height(8.dp))
         Column {
             Text("Nombre y Apellido", fontSize = 14.sp, color = Color.Gray)
-            Text(userFullName)  // METER MAGIA
+            Text(userFullName)
             Spacer(modifier = Modifier.height(8.dp))
             Text("Teléfono", fontSize = 14.sp, color = Color.Gray)
-            Text(phone)  // METER MAGIA
+            Text(userPhone ?: "—")
             Spacer(modifier = Modifier.height(8.dp))
             Text("Correo", fontSize = 14.sp, color = Color.Gray)
-            Text(email) // METER MAGIA
+            Text(userEmail ?: "—")
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -121,8 +149,13 @@ fun ResumeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Botón “Pagar 50%” → ahora pasamos 5 parámetros
         Button(
-            onClick = {navController.navigate("${AppScreens.PaymentScreen.route}/$typeField - Campo $numberField/$selectedDate/$selectedTime/$price/false")},
+            onClick = {
+                navController.navigate(
+                    "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/true"
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
             shape = RoundedCornerShape(8.dp)
@@ -132,8 +165,13 @@ fun ResumeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Botón “Pagar 100%” → idem
         Button(
-            onClick = { navController.navigate("${AppScreens.PaymentScreen.route}/$typeField - Campo $numberField/$selectedDate/$selectedTime/$price/${false}")},
+            onClick = {
+                navController.navigate(
+                    "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/false"
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000B3E)),
             shape = RoundedCornerShape(8.dp)
@@ -141,17 +179,4 @@ fun ResumeScreen(
             Text("Pagar 100%", color = Color.White)
         }
     }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
-@Composable
-fun PreviewResumeScreen() {
-    ResumeScreen(
-        navController = NavController(LocalContext.current), // simulado, no funcional
-        typeField = "Fútbol 11",
-        numberField = 3,
-        selectedDate = "15 de Julio, 2024",
-        selectedTime = "18:00 - 20:00",
-        price = 100
-    )
 }

@@ -45,7 +45,6 @@ fun HorarioScreen(
     val context = LocalContext.current
     val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
     val horarios by fieldsViewModel.availableTimes.collectAsState()
-
     var selectedDayIndex by remember { mutableStateOf(0) }
 
     val calendar = Calendar.getInstance()
@@ -67,18 +66,18 @@ fun HorarioScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         BloquesHorario(
+            fieldId = fieldId,
             horarios = horarios,
             fieldType = typeField,
             fieldNumber = numberField,
             selectedDate = selectedDate,
-            navController = navController,
-            fieldPrice = fieldPrice
+            navController = navController
         )
     }
 }
 
 @Composable
-fun HeaderCampos(nombreUsuario: String = "José Luyo") {
+fun HeaderCampos(nombreUsuario: String = "Jose Luyo") {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -86,7 +85,7 @@ fun HeaderCampos(nombreUsuario: String = "José Luyo") {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Image(
+        androidx.compose.foundation.Image(
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "Logo La Insurgencia",
             modifier = Modifier.size(36.dp)
@@ -123,19 +122,15 @@ fun TituloCampo(title: String) {
 
 @Composable
 fun BotonRegresar(navController: NavController) {
-    TextButton(onClick = { navController.popBackStack() }) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Regresar",
-            tint = Color(0xFF2ECC71)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "Regresar",
-            color = Color(0xFF2ECC71),
-            fontWeight = FontWeight.Medium
-        )
-    }
+    Text(
+        text = "← Regresar",
+        fontSize = 16.sp,
+        color = Color(0xFF2ECC71),
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .clickable { navController.popBackStack() }
+            .padding(12.dp)
+    )
 }
 
 @Composable
@@ -197,44 +192,14 @@ fun DaySelectorClassic(
 
 @Composable
 fun BloquesHorario(
+    fieldId: Int,
     horarios: List<TimeSlot>,
     fieldType: String,
     fieldNumber: Int,
     selectedDate: String,
-    navController: NavController,
-    fieldPrice: Int
+    navController: NavController
 ) {
     val scrollState = rememberScrollState()
-    var horarioSeleccionado by remember { mutableStateOf<String?>(null) }
-
-    // Modal de confirmación de reserva
-    if (horarioSeleccionado != null) {
-        AlertDialog(
-            onDismissRequest = { horarioSeleccionado = null },
-            title = { Text("Confirmar Reserva") },
-            text = {
-                Text(
-                    "¿Deseas hacer la reserva del Campo $fieldNumber de $fieldType el día " +
-                            "$selectedDate en el horario de $horarioSeleccionado?"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    navController.navigate(
-                        "${AppScreens.ResumeScreen.route}/$fieldType/$fieldNumber/$selectedDate/${horarioSeleccionado}/$fieldPrice"
-                    )
-                    horarioSeleccionado = null
-                }) {
-                    Text("Sí")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { horarioSeleccionado = null }) {
-                    Text("No")
-                }
-            }
-        )
-    }
 
     Column(
         modifier = Modifier
@@ -245,7 +210,7 @@ fun BloquesHorario(
     ) {
         horarios.forEach { slot ->
             if (slot.reserved) {
-                // Estado “reservado”: fondo verde + nombre del cliente
+                // Bloque reservado (fondo verde, nombre del cliente)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -261,20 +226,25 @@ fun BloquesHorario(
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = slot.client ?: "",
+                        text = slot.client.orEmpty(),
                         fontSize = 14.sp,
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                 }
             } else {
-                // Estado “libre”: borde y clicable para reservar
+                // Bloque libre: clicable para ir a ResumeScreen con fieldId, fecha y hora
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .border(1.dp, Color(0xFF0A0A23))
-                        .clickable { horarioSeleccionado = slot.time }
+                        .clickable {
+                            // Navegar sin diálogo, directamente a ResumeScreen
+                            navController.navigate(
+                                "${AppScreens.ResumeScreen.route}/$fieldId/$selectedDate/${slot.time}"
+                            )
+                        }
                         .padding(start = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

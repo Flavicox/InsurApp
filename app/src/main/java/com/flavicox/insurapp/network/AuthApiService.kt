@@ -1,9 +1,11 @@
 package com.flavicox.insurapp.network
 
+import com.flavicox.insurapp.model.CreateReserveRequest
 import com.flavicox.insurapp.model.Field
 import com.flavicox.insurapp.model.LoginRequest
 import com.flavicox.insurapp.model.LoginResponse
 import com.flavicox.insurapp.model.RegisterRequest
+import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.model.UserProfile
 import retrofit2.Response
@@ -46,4 +48,11 @@ interface AuthApiService {
         @Path("fieldId") fieldId: Int,
         @Header("Authorization") token: String
     ): Field
+
+    @POST("api/reservations/createReserve")
+    suspend fun createReservation(
+        @Body request: CreateReserveRequest,
+        @Header("Authorization") token: String
+    ): ReservationResponse
+
 }

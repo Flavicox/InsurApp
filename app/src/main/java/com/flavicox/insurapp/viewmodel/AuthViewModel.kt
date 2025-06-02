@@ -19,29 +19,24 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     private val prefs = UserPreferences(context)
 
-    var registrationSuccess by mutableStateOf(false)
-    var validationSuccess by mutableStateOf(false)
     var loginError by mutableStateOf<String?>(null)
 
+    // Flujos expuestos
     val userFullNameFlow: Flow<String> = prefs.userFullNameFlow
-
-    val fields = mutableStateOf<List<Field>>(emptyList())
-
-
+    val userPhoneFlow: Flow<String?> = prefs.userPhoneFlow
+    val userEmailFlow: Flow<String?> = prefs.userEmailFlow
 
     fun registerUser(data: RegisterRequest, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.authApi.registerUser(data)
                 if (response.isSuccessful) {
-                    registrationSuccess = true
                     onSuccess()
                 } else {
                     loginError = "Error al registrar"
                 }
             } catch (e: Exception) {
                 loginError = "Error: ${e.message}"
-                println("❌ Error de red: ${e.message}")
             }
         }
     }
@@ -51,7 +46,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             try {
                 val response = RetrofitInstance.authApi.validateCode(code)
                 if (response.isSuccessful) {
-                    validationSuccess = true
                     onSuccess()
                 } else {
                     loginError = "Código inválido"
@@ -74,11 +68,16 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 prefs.saveUserRole(response.role)
 
                 // 3) Recuperar perfil completo usando el token
-                //    (Aquí obtenemos name y surname)
+                //    (Aquí esperamos que UserProfile incluya phone y email)
                 val profile = RetrofitInstance.authApi.getUserProfile("Bearer ${response.token}")
-                prefs.saveUserProfile(profile.name, profile.surname)
+                prefs.saveUserProfile(
+                    profile.name,
+                    profile.surname,
+                    profile.phone ?: "",
+                    profile.email ?: ""
+                )
 
-                // 4) Ahora sí, devolvemos el rol al callback
+                // 4) Devolver rol al callback
                 onSuccess(response.role)
             } catch (e: Exception) {
                 loginError = "Login fallido: ${e.message}"
@@ -86,28 +85,17 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-
-    /**
-     * Devuelve true si existe un token guardado.
-     */
     suspend fun isLoggedIn(): Boolean {
         return prefs.getToken() != null
     }
 
-    /**
-     * Nuevo: lee el rol guardado en DataStore (o null si no hay).
-     */
     suspend fun getUserRole(): String? {
         return prefs.getUserRole()
     }
 
-    /**
-     * Cierra sesión (limpia token y rol).
-     */
     fun logout() {
         viewModelScope.launch {
             prefs.clearToken()
         }
     }
-
 }
