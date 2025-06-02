@@ -8,10 +8,12 @@ import com.flavicox.insurapp.model.RegisterRequest
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.model.UserProfile
+import com.flavicox.insurapp.model.ValidateReservationResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -54,5 +56,17 @@ interface AuthApiService {
         @Body request: CreateReserveRequest,
         @Header("Authorization") token: String
     ): ReservationResponse
+
+    @GET("api/reservations/validate-info")
+    suspend fun validateReservation(
+        @Query("id") id: Int,
+        @Header("Authorization") token: String
+    ): ValidateReservationResponse
+
+    @PATCH("api/reservations/validate/{id}")
+    suspend fun validateReservationPatch(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): ValidateReservationResponse
 
 }

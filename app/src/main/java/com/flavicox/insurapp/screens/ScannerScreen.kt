@@ -1,7 +1,10 @@
 package com.flavicox.insurapp.screens
 
 import android.Manifest
-import androidx.camera.core.*
+import android.net.Uri
+import android.util.Log
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.clickable
@@ -35,12 +38,26 @@ fun ScannerScreen(navController: NavController) {
         cameraPermissionState.launchPermissionRequest()
     }
 
+    // Cuando cambie scannedText, intentamos extraer el parámetro "id" con Uri.parse
     scannedText?.let { qrContent ->
-        val parts = qrContent.split("|")
-        if (parts.size >= 5) {
-            navController.navigate(
-                "validate_reservation/${parts[0]}/${parts[1]}/${parts[2]}/${parts[3]}/${parts[4]}" //Información del QR
-            )
+        // Limpiamos scannedText de inmediato para que no vuelva a dispararse múltiples veces
+        scannedText = null
+
+        try {
+            // Reemplazamos cualquier "\=" accidental por "=" antes de parsear
+            val sanitized = qrContent.replace("\\=", "=")
+            val uri = Uri.parse(sanitized)
+            val idParam = uri.getQueryParameter("id")
+            val id = idParam?.toIntOrNull()
+
+            if (id != null) {
+                Log.d("SCANNER", "Navegando a validate_reservation/$id")
+                navController.navigate("validate_reservation/$id")
+            } else {
+                Log.e("SCANNER", "No se encontró un parámetro id válido en: $qrContent")
+            }
+        } catch (e: Exception) {
+            Log.e("SCANNER", "Error al parsear la URL del QR: $qrContent", e)
         }
     }
 
@@ -64,7 +81,7 @@ fun ScannerScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Escanea el código QR del usuario para ver los detalles de la reserva.",
+            text = "Escanea el código QR para validar la reserva.",
             fontSize = 14.sp,
             color = Color.Gray,
             lineHeight = 18.sp
@@ -72,13 +89,22 @@ fun ScannerScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+        ) {
             if (cameraPermissionState.status.isGranted) {
                 CameraPreviewWithScan { result ->
+                    Log.d("SCANNER", "ML Kit DETECTÓ: $result")
                     scannedText = result
                 }
             } else {
-                Text("Se necesita permiso de cámara", color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                Text(
+                    "Se necesita permiso de cámara",
+                    color = Color.Red,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
     }
@@ -95,7 +121,7 @@ fun CameraPreviewWithScan(onScanResult: (String) -> Unit) {
 
     LaunchedEffect(Unit) {
         val cameraProvider = ProcessCameraProvider.getInstance(context).get()
-        val preview = Preview.Builder().build().apply {
+        val preview = androidx.camera.core.Preview.Builder().build().apply {
             setSurfaceProvider(previewView.surfaceProvider)
         }
 
@@ -107,7 +133,12 @@ fun CameraPreviewWithScan(onScanResult: (String) -> Unit) {
 
         try {
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analyzer)
+            cameraProvider.bindToLifecycle(
+                lifecycleOwner,
+                androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA,
+                preview,
+                analyzer
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -115,20 +146,32 @@ fun CameraPreviewWithScan(onScanResult: (String) -> Unit) {
 }
 
 fun processImageProxy(imageProxy: ImageProxy, onScanResult: (String) -> Unit) {
-    val mediaImage = imageProxy.image ?: return
+    val mediaImage = imageProxy.image
+    if (mediaImage == null) {
+        imageProxy.close()
+        return
+    }
+
     val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
     val scanner = BarcodeScanning.getClient()
 
+    Log.d("SCANNER", "processImageProxy(): enviando imagen a ML Kit")
+
     scanner.process(image)
         .addOnSuccessListener { barcodes ->
-            for (barcode in barcodes) {
-                barcode.rawValue?.let { rawValue ->
-                    onScanResult(rawValue)
+            if (barcodes.isNotEmpty()) {
+                barcodes.forEach { barcode ->
+                    barcode.rawValue?.let { rawValue ->
+                        Log.d("SCANNER", "ML Kit DETECTÓ (rawValue): $rawValue")
+                        onScanResult(rawValue)
+                    }
                 }
+            } else {
+                Log.d("SCANNER", "ML Kit NO encontró ningún código en este frame")
             }
         }
-        .addOnFailureListener {
-            it.printStackTrace()
+        .addOnFailureListener { e ->
+            Log.e("SCANNER", "processImageProxy(): error ML Kit", e)
         }
         .addOnCompleteListener {
             imageProxy.close()

@@ -157,6 +157,18 @@ fun AppNavigation() {
                 )
             }
 
+            composable(
+                "${AppScreens.ValidateReservationScreen.route}/{reservationId}",
+                arguments = listOf(
+                    navArgument("reservationId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val reservationId = backStackEntry.arguments?.getInt("reservationId") ?: 0
+                ValidateReservationScreen(
+                    navController   = navController,
+                    reservationId   = reservationId
+                )
+            }
         }
     }
 }
