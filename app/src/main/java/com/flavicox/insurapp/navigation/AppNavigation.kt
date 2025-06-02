@@ -10,29 +10,28 @@ import com.flavicox.insurapp.screens.*
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+
     var startDestination by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        // Esto se ejecuta una sola vez
         val isLogged = viewModel.isLoggedIn()
-        startDestination = if (isLogged) {
-            AppScreens.ListScreen.route
-        } else {
+        startDestination = if (!isLogged) {
             AppScreens.LoginScreen.route
+        } else {
+            val role = viewModel.getUserRole()
+            if (role == "ROLE_ADMIN") AppScreens.AdminScreen.route
+            else AppScreens.ListScreen.route
         }
     }
 
-    // Solo renderiza NavHost cuando ya se tiene el destino inicial
     startDestination?.let { route ->
-        NavHost(navController = navController, startDestination = AppScreens.SplashScreen.route) {
-            composable(AppScreens.SplashScreen.route) {
-                SplashScreen(navController)
-            }
+        NavHost(navController = navController, startDestination = route) {
             composable(AppScreens.LoginScreen.route) {
                 LoginScreen(navController)
             }
@@ -44,6 +43,12 @@ fun AppNavigation() {
             }
             composable(AppScreens.ListScreen.route) {
                 ListScreen(navController)
+            }
+            composable(AppScreens.AdminScreen.route) {
+                AdminScreen(navController)
+            }
+            composable(AppScreens.ScannerScreen.route) {
+                ScannerScreen(navController)
             }
             composable(AppScreens.ValidateCodeScreen.route) {
                 ValidateCodeScreen(navController)

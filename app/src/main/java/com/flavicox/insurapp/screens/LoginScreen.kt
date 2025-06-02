@@ -35,7 +35,7 @@ fun LoginScreen(navController: NavController){
 
 
 @Composable
-fun LoginBodyComponent(navController: NavController){
+fun LoginBodyComponent(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -90,9 +90,7 @@ fun LoginBodyComponent(navController: NavController){
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        painter = painterResource(
-                            id = if (passwordVisible) R.drawable.visibilityoff else R.drawable.visibility
-                        ),
+                        painter = painterResource(id = if (passwordVisible) R.drawable.visibilityoff else R.drawable.visibility),
                         contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
                     )
                 }
@@ -113,8 +111,16 @@ fun LoginBodyComponent(navController: NavController){
 
         Button(
             onClick = {
-                viewModel.login(email, password) {
-                    navController.navigate(AppScreens.ListScreen.route)
+                viewModel.login(email, password) { role ->
+                    if (role == "ROLE_ADMIN") {
+                        navController.navigate(AppScreens.AdminScreen.route) {
+                            popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(AppScreens.ListScreen.route) {
+                            popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                        }
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -123,15 +129,14 @@ fun LoginBodyComponent(navController: NavController){
             Text("Iniciar Sesión")
         }
 
-
         Spacer(modifier = Modifier.height(16.dp))
 
         DividerWithCircle()
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            navController.navigate(route = AppScreens.RegisterScreen.route) },
+        Button(
+            onClick = { navController.navigate(AppScreens.RegisterScreen.route) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71))
         ) {
@@ -139,7 +144,6 @@ fun LoginBodyComponent(navController: NavController){
         }
     }
 }
-
 @Composable
 fun DividerWithCircle() {
     Row(

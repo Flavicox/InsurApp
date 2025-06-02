@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.flavicox.insurapp.model.Field
+import com.flavicox.insurapp.model.LoginResponse
 import kotlinx.coroutines.flow.Flow
 
 class AuthViewModel(private val context: Context) : ViewModel() {
@@ -61,30 +62,52 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun login(email: String, password: String, onSuccess: () -> Unit) {
+    fun login(email: String, password: String, onSuccess: (role: String) -> Unit) {
         viewModelScope.launch {
             try {
-                val response = RetrofitInstance.authApi.login(LoginRequest(email, password))
-                prefs.saveToken(response.token)
+                // 1) Llamada al endpoint de login (devuelve token + role)
+                val response: LoginResponse =
+                    RetrofitInstance.authApi.login(LoginRequest(email, password))
 
-                // Obtener perfil con token
+                // 2) Guardar token y rol en DataStore
+                prefs.saveToken(response.token)
+                prefs.saveUserRole(response.role)
+
+                // 3) Recuperar perfil completo usando el token
+                //    (Aquí obtenemos name y surname)
                 val profile = RetrofitInstance.authApi.getUserProfile("Bearer ${response.token}")
                 prefs.saveUserProfile(profile.name, profile.surname)
 
-                onSuccess()
+                // 4) Ahora sí, devolvemos el rol al callback
+                onSuccess(response.role)
             } catch (e: Exception) {
                 loginError = "Login fallido: ${e.message}"
             }
         }
     }
 
+
+    /**
+     * Devuelve true si existe un token guardado.
+     */
     suspend fun isLoggedIn(): Boolean {
         return prefs.getToken() != null
     }
 
+    /**
+     * Nuevo: lee el rol guardado en DataStore (o null si no hay).
+     */
+    suspend fun getUserRole(): String? {
+        return prefs.getUserRole()
+    }
+
+    /**
+     * Cierra sesión (limpia token y rol).
+     */
     fun logout() {
         viewModelScope.launch {
             prefs.clearToken()
         }
     }
+
 }

@@ -37,4 +37,11 @@ interface AuthApiService {
         @Query("bookingDate") bookingDate: String,
         @Header("Authorization") token: String
     ): List<String>
+
+    // --- Nuevo: obtener datos de un campo por su ID ---
+    @GET("api/fields/{fieldId}")
+    suspend fun getFieldById(
+        @Path("fieldId") fieldId: Int,
+        @Header("Authorization") token: String
+    ): Field
 }
