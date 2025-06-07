@@ -44,7 +44,6 @@ interface AuthApiService {
         @Header("Authorization") token: String
     ): List<TimeSlot>
 
-    // --- Nuevo: obtener datos de un campo por su ID ---
     @GET("api/fields/{fieldId}")
     suspend fun getFieldById(
         @Path("fieldId") fieldId: Int,
