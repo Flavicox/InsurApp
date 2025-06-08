@@ -68,4 +68,10 @@ interface AuthApiService {
         @Header("Authorization") token: String
     ): ValidateReservationResponse
 
+
+    //PEDIR LISTA DE RESERVACIONES HECHAS POR EL USUARIO
+    @GET("api/reservations/my-reservations")
+    suspend fun getMyReservations(
+        @Header("Authorization") token: String
+    ): List<ReservationResponse>
 }

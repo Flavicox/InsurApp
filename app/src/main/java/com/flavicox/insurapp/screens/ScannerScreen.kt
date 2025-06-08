@@ -22,7 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.google.accompanist.permissions.*
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
@@ -33,6 +37,12 @@ import java.util.concurrent.Executors
 fun ScannerScreen(navController: NavController) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     var scannedText by remember { mutableStateOf<String?>(null) }
+
+
+    //Para guardar el nombre de usuario del TopBarCampos (HEADER)
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
 
     LaunchedEffect(Unit) {
         cameraPermissionState.launchPermissionRequest()
@@ -61,52 +71,59 @@ fun ScannerScreen(navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Volver",
-                modifier = Modifier
-                    .size(32.dp)
-                    .clickable { navController.popBackStack() }
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Escanear QR", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Escanea el código QR para validar la reserva.",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            lineHeight = 18.sp
+    Column {
+        TopBarCampos(
+            nombreUsuario = fullName,
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Box(
+        Column(
             modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ){
+            Box (modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
-        ) {
-            if (cameraPermissionState.status.isGranted) {
-                CameraPreviewWithScan { result ->
-                    Log.d("SCANNER", "ML Kit DETECTÓ: $result")
-                    scannedText = result
+                .padding(bottom = 10.dp))
+            {
+                BotonRegresar(navController)
+                Titulo("Escanear QR")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Escanea el código QR para validar la reserva.",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                lineHeight = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                if (cameraPermissionState.status.isGranted) {
+                    CameraPreviewWithScan { result ->
+                        Log.d("SCANNER", "ML Kit DETECTÓ: $result")
+                        scannedText = result
+                    }
+                } else {
+                    Text(
+                        "Se necesita permiso de cámara",
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
-            } else {
-                Text(
-                    "Se necesita permiso de cámara",
-                    color = Color.Red,
-                    modifier = Modifier.align(Alignment.Center)
-                )
             }
         }
+
     }
 }
 

@@ -1,7 +1,6 @@
 package com.flavicox.insurapp.screens
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,16 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.flavicox.insurapp.R
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 import java.text.SimpleDateFormat
@@ -47,63 +46,55 @@ fun HorarioScreen(
     val horarios by fieldsViewModel.availableTimes.collectAsState()
     var selectedDayIndex by remember { mutableStateOf(0) }
 
+
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.DAY_OF_YEAR, selectedDayIndex)
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val selectedDate = dateFormat.format(calendar.time)
+
+
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
 
     LaunchedEffect(selectedDayIndex) {
         fieldsViewModel.getAvailableTimes(fieldId, selectedDate)
     }
 
     Column {
-        HeaderCampos()
-        TituloCampo(fieldTitle)
-        BotonRegresar(navController)
-        DaySelectorClassic(
-            selectedIndex = selectedDayIndex,
-            onDaySelected = { selectedDayIndex = it }
+        TopBarCampos(
+            nombreUsuario = fullName,
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        BloquesHorario(
-            fieldId = fieldId,
-            horarios = horarios,
-            fieldType = typeField,
-            fieldNumber = numberField,
-            selectedDate = selectedDate,
-            navController = navController
-        )
-    }
-}
-
-@Composable
-fun HeaderCampos(nombreUsuario: String = "Jose Luyo") {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        androidx.compose.foundation.Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo La Insurgencia",
-            modifier = Modifier.size(36.dp)
-        )
-
-        Text(
-            text = "Bienvenido, $nombreUsuario!",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Icon(
-            painter = painterResource(id = R.drawable.user_icon),
-            contentDescription = "Perfil",
+        Column(
             modifier = Modifier
-                .size(40.dp)
-                .padding(4.dp)
-        )
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ) {Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp))
+            {
+                BotonRegresar(navController)
+                Titulo(fieldTitle)
+            }
+            DaySelectorClassic(
+                selectedIndex = selectedDayIndex,
+                onDaySelected = { selectedDayIndex = it }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            BloquesHorario(
+                fieldId = fieldId,
+                horarios = horarios,
+                fieldType = typeField,
+                fieldNumber = numberField,
+                selectedDate = selectedDate,
+                navController = navController
+            )
+        }
     }
 }
 
@@ -116,20 +107,18 @@ fun TituloCampo(title: String) {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(bottom = 10.dp)
     )
 }
 
 @Composable
 fun BotonRegresar(navController: NavController) {
-    Text(
-        text = "← Regresar",
-        fontSize = 16.sp,
-        color = Color(0xFF2ECC71),
-        fontWeight = FontWeight.Medium,
+    Icon(
+        imageVector = Icons.Default.ArrowBack,
+        contentDescription = "Volver",
         modifier = Modifier
+            .size(32.dp)
             .clickable { navController.popBackStack() }
-            .padding(12.dp)
     )
 }
 
@@ -144,8 +133,7 @@ fun DaySelectorClassic(
 
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         repeat(5) { index ->
@@ -161,7 +149,7 @@ fun DaySelectorClassic(
                 modifier = Modifier
                     .width(64.dp)
                     .height(64.dp)
-                    .padding(4.dp)
+                    .padding(3.dp)
                     .background(
                         color = if (isSelected) Color(0xFF2ECC71) else Color.White,
                         shape = RoundedCornerShape(4.dp)
@@ -204,7 +192,6 @@ fun BloquesHorario(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .height(600.dp)
             .verticalScroll(scrollState)
     ) {

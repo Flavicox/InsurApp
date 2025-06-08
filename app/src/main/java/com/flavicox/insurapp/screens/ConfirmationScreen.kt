@@ -10,14 +10,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 
 @Composable
 fun ConfirmationScreen(navController: NavController) {
@@ -46,6 +50,19 @@ fun ConfirmationScreen(navController: NavController) {
     val timetableEnd   = r.timetableEnd.removeSuffix(":00")
     val qrUrl          = r.qrUrl
 
+    //Para guardar el nombre de usuario del TopBarCampos (HEADER)
+    val context = LocalContext.current
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
+
+    Column {
+        TopBarCampos(
+            nombreUsuario = fullName,
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,12 +70,13 @@ fun ConfirmationScreen(navController: NavController) {
             .padding(top = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Reserva Confirmada",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-
+        Box (modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp))
+        {
+            BotonRegresar(navController)
+            Titulo("Reserva Confirmada")
+        }
         Spacer(modifier = Modifier.height(15.dp))
 
         Text(

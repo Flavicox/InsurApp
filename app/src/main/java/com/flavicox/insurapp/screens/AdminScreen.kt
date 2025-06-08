@@ -41,73 +41,73 @@ fun AdminBodyComponent(
     var showLogoutDialog by remember { mutableStateOf(false) }
     val fullName by authViewModel.userFullNameFlow.collectAsState(initial = "")
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column {
         TopBarCampos(
             nombreUsuario = fullName,
-            onLogoutClick = { showLogoutDialog = true }
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Panel Administrador",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Box(
+        Column (
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Button(
-                onClick = {
-                    // Navega a ScannerScreen
-                    navController.navigate(AppScreens.ScannerScreen.route)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ){
+            Titulo("Panel Administrador")
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
-                Text(
-                    text = "Escanear QR de reserva",
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium
-                )
+                Button(
+                    onClick = {
+                        // Navega a ScannerScreen
+                        navController.navigate(AppScreens.ScannerScreen.route)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "Escanear QR de reserva",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
-    }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Cerrar sesión") },
-            text = { Text("¿Estás seguro que deseas cerrar sesión?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    authViewModel.logout()
-                    navController.navigate(AppScreens.LoginScreen.route) {
-                        popUpTo(0)
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("Cerrar sesión") },
+                text = { Text("¿Estás seguro que deseas cerrar sesión?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutDialog = false
+                        authViewModel.logout()
+                        navController.navigate(AppScreens.LoginScreen.route) {
+                            popUpTo(0)
+                        }
+                    }) {
+                        Text("Sí")
                     }
-                }) {
-                    Text("Sí")
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text("Cancelar")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
-        )
+            )
+        }
     }
 }
 

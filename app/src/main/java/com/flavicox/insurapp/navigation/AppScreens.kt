@@ -15,5 +15,5 @@ sealed class AppScreens(val route: String){
     object ScannerScreen : AppScreens("scanner_screen")
     object PayScreen : AppScreens("pay_screen")
     object ValidateReservationScreen:  AppScreens("validate_reservation")
-
+    object ProfileScreen: AppScreens("profile_screen")
 }

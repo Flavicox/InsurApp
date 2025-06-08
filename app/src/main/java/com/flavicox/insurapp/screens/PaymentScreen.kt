@@ -25,6 +25,7 @@ import com.flavicox.insurapp.R
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,21 +52,14 @@ fun PaymentScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Volver",
-            modifier = Modifier
-                .size(32.dp)
-                .clickable { navController.popBackStack() }
-        )
-
+        Box (modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp))
+        {
+            BotonRegresar(navController)
+            Titulo("Pagar Reserva")
+        }
         Spacer(modifier = Modifier.height(30.dp))
-
-        Text(
-            text = "Pagar Reserva",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
 
         Spacer(modifier = Modifier.height(28.dp))
 

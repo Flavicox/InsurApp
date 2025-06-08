@@ -169,6 +169,9 @@ fun AppNavigation() {
                     reservationId   = reservationId
                 )
             }
+            composable(AppScreens.ProfileScreen.route) {
+                ProfileScreen(navController)
+            }
         }
     }
 }

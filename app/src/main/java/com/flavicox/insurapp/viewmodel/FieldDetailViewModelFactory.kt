@@ -12,9 +12,3 @@ class FieldDetailViewModelFactory(
         return FieldDetailViewModel(context) as T
     }
 }
-
-
-
-
-
-

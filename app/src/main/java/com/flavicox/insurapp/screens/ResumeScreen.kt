@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,132 +52,133 @@ fun ResumeScreen(
         fieldDetailVM.loadField(fieldId)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Volver",
+    Column() {
+        TopBarCampos(
+            nombreUsuario = userFullName,
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
+        )
+        Column(
             modifier = Modifier
-                .size(32.dp)
-                .clickable { navController.popBackStack() }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Resumen de Reserva",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        Text(text = "Detalles de la Reserva", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        // Si aún no llegó fieldDetail, mostramos placeholders
-        val typeFieldText   = fieldDetail?.typeField ?: "Cargando..."
-        val numberFieldText = fieldDetail?.numberField ?: 0
-        val priceText       = fieldDetail?.price ?: 0
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Tipo de Campo", fontSize = 14.sp, color = Color.Gray)
-                Text(typeFieldText)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ){
+            Box (modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp))
+            {
+                BotonRegresar(navController)
+                Titulo("Resumen de Reserva")
             }
-            Column(
-                Modifier
-                    .width(200.dp)
-                    .height(30.dp)
-                    .padding(start = 40.dp)
-            ) {
-                Text("Número de Campo", fontSize = 14.sp, color = Color.Gray)
-                Text("Campo $numberFieldText")
+            Spacer(modifier = Modifier.height(28.dp))
+            Text(text = "Detalles de la Reserva", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            // Si aún no llegó fieldDetail, mostramos placeholders
+            val typeFieldText   = fieldDetail?.typeField ?: "Cargando..."
+            val numberFieldText = fieldDetail?.numberField ?: 0
+            val priceText       = fieldDetail?.price ?: 0
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Tipo de Campo", fontSize = 14.sp, color = Color.Gray)
+                    Text(typeFieldText)
+                }
+                Column(
+                    Modifier
+                        .width(200.dp)
+                        .height(30.dp)
+                        .padding(start = 40.dp)
+                ) {
+                    Text("Número de Campo", fontSize = 14.sp, color = Color.Gray)
+                    Text("Campo $numberFieldText")
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Fecha", fontSize = 14.sp, color = Color.Gray)
-                Text(selectedDate)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Fecha", fontSize = 14.sp, color = Color.Gray)
+                    Text(selectedDate)
+                }
+                Column(
+                    Modifier
+                        .width(200.dp)
+                        .height(30.dp)
+                        .padding(start = 40.dp)
+                ) {
+                    Text("Hora", fontSize = 14.sp, color = Color.Gray)
+                    Text(selectedTime)
+                }
             }
-            Column(
-                Modifier
-                    .width(200.dp)
-                    .height(30.dp)
-                    .padding(start = 40.dp)
-            ) {
-                Text("Hora", fontSize = 14.sp, color = Color.Gray)
-                Text(selectedTime)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                Column {
+                    Text("Precio", fontSize = 14.sp, color = Color.Gray)
+                    Text("S/. $priceText")
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-            Column {
-                Text("Precio", fontSize = 14.sp, color = Color.Gray)
-                Text("S/. $priceText")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Text(text = "Información del Usuario", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-        Spacer(modifier = Modifier.height(8.dp))
-        Column {
-            Text("Nombre y Apellido", fontSize = 14.sp, color = Color.Gray)
-            Text(userFullName)
+            Text(text = "Información del Usuario", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Teléfono", fontSize = 14.sp, color = Color.Gray)
-            Text(userPhone ?: "—")
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Correo", fontSize = 14.sp, color = Color.Gray)
-            Text(userEmail ?: "—")
+            Column {
+                Text("Nombre y Apellido", fontSize = 14.sp, color = Color.Gray)
+                Text(userFullName)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Teléfono", fontSize = 14.sp, color = Color.Gray)
+                Text(userPhone ?: "—")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Correo", fontSize = 14.sp, color = Color.Gray)
+                Text(userEmail ?: "—")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(text = "Opciones de Pago", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botón “Pagar 50%” → ahora pasamos 5 parámetros
+            Button(
+                onClick = {
+                    navController.navigate(
+                        "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/true"
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Pagar 50%", color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botón “Pagar 100%” → idem
+            Button(
+                onClick = {
+                    navController.navigate(
+                        "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/false"
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000B3E)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Pagar 100%", color = Color.White)
+            }
+
+
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(text = "Opciones de Pago", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Botón “Pagar 50%” → ahora pasamos 5 parámetros
-        Button(
-            onClick = {
-                navController.navigate(
-                    "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/true"
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Pagar 50%", color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Botón “Pagar 100%” → idem
-        Button(
-            onClick = {
-                navController.navigate(
-                    "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/false"
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000B3E)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Pagar 100%", color = Color.White)
-        }
     }
 }

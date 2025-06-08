@@ -79,12 +79,18 @@ fun ListBodyComponent(navController: NavController) {
     Column {
         TopBarCampos(
             nombreUsuario = fullName,
-            onLogoutClick = { showLogoutDialog = true }
+            onProfileClick = {
+                navController.navigate(AppScreens.ProfileScreen.route)
+            }
         )
-
-        TituloSeleccionarCampo()
-
-        Column (modifier = Modifier.verticalScroll(scrollState)) {
+        Column (
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start)
+        {
+            Titulo("Seleccionar Campo")
             campos.forEach { campo ->
                 val nombre = "${campo.typeField} - Campo ${campo.numberField}"
                 val precio = "S/. ${campo.price}"
@@ -126,16 +132,29 @@ fun ListBodyComponent(navController: NavController) {
     }
 }
 
+@Composable
+fun Titulo(texto: String) {
+    Text(
+        text = texto,
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
+    )
+}
 
 @Composable
 fun TopBarCampos(
     nombreUsuario: String,
-    onLogoutClick: () -> Unit
+    onProfileClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -152,28 +171,14 @@ fun TopBarCampos(
         )
 
         Icon(
-            painter = painterResource(id = R.drawable.baseline_logout_24),
-            contentDescription = "Cerrar sesión",
+            painter = painterResource(id = R.drawable.user_icon),
+            contentDescription = "Ver perfil",
             modifier = Modifier
                 .size(40.dp)
                 .padding(4.dp)
-                .clickable { onLogoutClick() }
+                .clickable { onProfileClick() }
         )
     }
-}
-
-
-@Composable
-fun TituloSeleccionarCampo() {
-    Text(
-        text = "Seleccionar Campo",
-        fontSize = 24.sp,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    )
 }
 
 @Composable
@@ -185,7 +190,7 @@ fun CampoCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
     ) {

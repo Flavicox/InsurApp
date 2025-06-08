@@ -43,11 +43,7 @@ fun ValidateCodeScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Validar Cuenta",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Titulo("Validar Cuenta")
 
             Spacer(modifier = Modifier.height(24.dp))
 

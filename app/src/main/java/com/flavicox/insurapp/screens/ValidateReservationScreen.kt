@@ -72,15 +72,20 @@ fun ValidateReservationScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = "Reserva",
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 30.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
         )
+        {
+            BotonRegresar(navController)
+            Text("Reserva")
+        }
 
+        BotonRegresar(navController)
         Spacer(modifier = Modifier.height(25.dp))
 
         Text(
@@ -105,7 +110,8 @@ fun ValidateReservationScreen(
             value = r.bookingDate
         )
 
-        val timeFormatted = "${r.timetableStart.removeSuffix(":00")} - ${r.timetableEnd.removeSuffix(":00")}"
+        val timeFormatted =
+            "${r.timetableStart.removeSuffix(":00")} - ${r.timetableEnd.removeSuffix(":00")}"
         ReservationTextField(
             title = "Hora",
             value = timeFormatted
