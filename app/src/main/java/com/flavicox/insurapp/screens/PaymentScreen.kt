@@ -1,34 +1,20 @@
 package com.flavicox.insurapp.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.flavicox.insurapp.R
-import com.flavicox.insurapp.viewmodel.AuthViewModel
-import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import com.flavicox.insurapp.viewmodel.StripePaymentViewModel
+import com.flavicox.insurapp.viewmodel.StripePaymentViewModelFactory
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 
 @Composable
 fun PaymentScreen(
@@ -36,14 +22,19 @@ fun PaymentScreen(
     fieldLabel: String,
     date: String,
     time: String,
-    price: Int,  //VIENE DESDE EL LISTSCREEN Y DE ACUERDO AL BOTON SE CALCULA EL 100% O 50%
-    isHalfPayment: Boolean
+    price: Int,
+    isHalfPayment: Boolean,
+    reserveId: Int
 ) {
     val context = LocalContext.current
-    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val userFullName by authViewModel.userFullNameFlow.collectAsState(initial = "")
+    val viewModel: StripePaymentViewModel = viewModel(factory = StripePaymentViewModelFactory(context))
+    val paymentSheet = rememberPaymentSheet(viewModel::onPaymentResult)
+    val paymentState by viewModel.paymentState.collectAsState()
+    val finalAmount = if (isHalfPayment) price / 2 else price
 
-    val finalAmount = if (isHalfPayment) price / 2 else price    //  50%
+    LaunchedEffect(Unit) {
+        viewModel.fetchPaymentSheetData(reserveId, finalAmount)
+    }
 
     Column(
         modifier = Modifier
@@ -52,60 +43,53 @@ fun PaymentScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        Box (modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp))
         {
             BotonRegresar(navController)
             Titulo("Pagar Reserva")
         }
-        Spacer(modifier = Modifier.height(30.dp))
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = fieldLabel, fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp))
-        Text(text = "Fecha: $date", fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp))
-        Text(text = "Hora: $time", fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp))
-        Text(text = "Precio: S/. $finalAmount", fontSize = 16.sp)
+        Text(text = "Campo: $fieldLabel",
+            fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Fecha: $date",
+            fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Hora: $time",
+            fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Precio: S/. $finalAmount",
+            fontSize = 16.sp)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "Nombre: $userFullName", fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp))
-        Text(text = "Teléfono: 987654321", fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp)) // reemplazar por real - FLAVIO METE MAGIA
-        Text(text = "Correo: usuario@email.com", fontSize = 16.sp, modifier = Modifier.padding(bottom = 5.dp)) // reemplazar por real - FLAVIO METE MAGIA
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        Image(
-            painter = painterResource(id = R.drawable.paypal),
-            contentDescription = "PayPal",
-            modifier = Modifier
-                .height(80.dp)
-                .align(Alignment.CenterHorizontally)
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = { /* Lógica futura de PayPal - URL para que se abra el navegador para pagar con paypal*/ },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 100.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Pagar con PayPal", color = Color.White)
+        when (val state = paymentState) {
+            is com.flavicox.insurapp.viewmodel.PaymentState.Loading -> CircularProgressIndicator()
+            is com.flavicox.insurapp.viewmodel.PaymentState.Error -> Text("Error: ${'$'}{state.message}", color = Color.Red)
+            is com.flavicox.insurapp.viewmodel.PaymentState.Ready -> {
+                Button(
+                    onClick = {
+                        paymentSheet.presentWithPaymentIntent(
+                            paymentIntentClientSecret = state.clientSecret,
+                            configuration = PaymentSheet.Configuration(
+                                merchantDisplayName = "InsurApp",
+                                customer = state.customerConfig,
+                                allowsDelayedPaymentMethods = true
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Pagar con Stripe")
+                }
+            }
+            is com.flavicox.insurapp.viewmodel.PaymentState.Success -> Text("Pago completado", color = Color.Green)
+            else -> {}
         }
     }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
-@Composable
-fun PreviewPaymentScreen() {
-    PaymentScreen(
-        navController = NavController(LocalContext.current), // Simulado, no funcional
-        fieldLabel = "Campo: Fútbol - Campo 1",
-        date = "05 MAY",
-        time = "08:00 pm",
-        price = 100,
-        isHalfPayment = false
-    )
 }

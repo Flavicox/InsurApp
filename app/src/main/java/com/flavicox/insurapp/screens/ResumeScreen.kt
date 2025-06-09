@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,6 +24,8 @@ import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.FieldDetailViewModel
 import com.flavicox.insurapp.viewmodel.FieldDetailViewModelFactory
+import com.flavicox.insurapp.viewmodel.ReservationViewModel
+import com.flavicox.insurapp.viewmodel.ReservationViewModelFactory
 
 @Composable
 fun ResumeScreen(
@@ -46,6 +47,9 @@ fun ResumeScreen(
     val userFullName by authViewModel.userFullNameFlow.collectAsState(initial = "")
     val userPhone    by authViewModel.userPhoneFlow.collectAsState(initial = "")
     val userEmail    by authViewModel.userEmailFlow.collectAsState(initial = "")
+    val reservationVM: ReservationViewModel = viewModel(factory = ReservationViewModelFactory(context))
+    val reservation by reservationVM.reservation.collectAsState()
+    val reserveId = 1
 
     // Cargar datos del campo al iniciarse
     LaunchedEffect(fieldId) {
@@ -151,7 +155,7 @@ fun ResumeScreen(
             Button(
                 onClick = {
                     navController.navigate(
-                        "${AppScreens.PayScreen.route}/$fieldId/$selectedDate/$selectedTime/$priceText/true"
+                        "${AppScreens.PaymentScreen.route}/$reserveId/$fieldId/$selectedDate/$selectedTime/$priceText/true"
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),

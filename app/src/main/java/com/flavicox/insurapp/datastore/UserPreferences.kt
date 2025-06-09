@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
-class UserPreferences(private val context: Context) {
+class UserPreferences(val context: Context) {
     companion object {
         val TOKEN_KEY       = stringPreferencesKey("jwt_token")
         val USER_ROLE_KEY   = stringPreferencesKey("user_role")
@@ -87,5 +87,8 @@ class UserPreferences(private val context: Context) {
     }
     suspend fun getUserEmail(): String? {
         return context.dataStore.data.map { it[EMAIL_KEY] }.first()
+    }
+    suspend fun getUserName(): String? {
+        return context.dataStore.data.map { it[NAME_KEY] }.first()
     }
 }

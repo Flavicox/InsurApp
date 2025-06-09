@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -40,7 +41,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "2.0.0"
     }
     packaging {
         resources {
@@ -76,7 +77,6 @@ dependencies {
     //DataStore
     implementation(libs.androidx.datastore.preferences)
 
-
     //Extension de Iconos de Mateial
     implementation("androidx.compose.material:material-icons-extended")
 
@@ -93,4 +93,10 @@ dependencies {
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
     implementation ("io.coil-kt:coil-compose:2.4.0")
+
+    //Stripe
+    implementation("com.stripe:stripe-android:21.16.0")
+    implementation("com.stripe:financial-connections:21.16.0") // solo si usarás cuentas bancarias (opcional)
+    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+    implementation("com.github.kittinunf.fuel:fuel-json:2.3.1")
 }
