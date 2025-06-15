@@ -20,14 +20,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.gson.Gson
+import android.net.Uri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.flavicox.insurapp.model.CreateReserveRequest
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,15 +47,16 @@ fun HorarioScreen(
 ) {
     val context = LocalContext.current
     val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
-    val horarios by fieldsViewModel.availableTimes.collectAsState()
+    val horarios by fieldsViewModel.availableTimes.collectAsState(emptyList())
+
     var selectedDayIndex by remember { mutableStateOf(0) }
-
-
-    val calendar = Calendar.getInstance()
-    calendar.add(Calendar.DAY_OF_YEAR, selectedDayIndex)
+    val calendar = remember { Calendar.getInstance() }
+    LaunchedEffect(selectedDayIndex) {
+        calendar.time = Date()
+        calendar.add(Calendar.DAY_OF_YEAR, selectedDayIndex)
+    }
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val selectedDate = dateFormat.format(calendar.time)
-
+    val selectedDate by remember(calendar) { mutableStateOf(dateFormat.format(calendar.time)) }
 
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
     val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
@@ -60,43 +65,75 @@ fun HorarioScreen(
         fieldsViewModel.getAvailableTimes(fieldId, selectedDate)
     }
 
-    Column {
-        TopBarCampos(
-            nombreUsuario = fullName,
-            onProfileClick = {
-                navController.navigate(AppScreens.ProfileScreen.route)
-            }
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
-        ) {Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp))
-            {
+    var showConfirm by remember { mutableStateOf(false) }
+    var pendingSlot by remember { mutableStateOf<TimeSlot?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopBarCampos(nombreUsuario = fullName) {
+            navController.navigate(AppScreens.ProfileScreen.route)
+        }
+        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 BotonRegresar(navController)
-                Titulo(fieldTitle)
+                TituloCampo(fieldTitle)
             }
-            DaySelectorClassic(
-                selectedIndex = selectedDayIndex,
-                onDaySelected = { selectedDayIndex = it }
-            )
+            DaySelectorClassic(selectedIndex = selectedDayIndex) { selectedDayIndex = it }
             Spacer(modifier = Modifier.height(16.dp))
-            BloquesHorario(
-                fieldId = fieldId,
-                horarios = horarios,
-                fieldType = typeField,
-                fieldNumber = numberField,
-                selectedDate = selectedDate,
-                navController = navController
-            )
+            BloquesHorario(horarios = horarios) { slot ->
+                pendingSlot = slot
+                showConfirm = true
+            }
         }
     }
+
+    if (showConfirm && pendingSlot != null) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("Confirmar reserva") },
+            text = { Text("¿Estás seguro de reservar a las ${pendingSlot!!.time}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirm = false
+                    coroutineScope.launch {
+                        // Separamos horas de inicio y fin
+                        val parts = pendingSlot!!.time.split(" - ")
+                        val start = parts[0]
+                        val end = parts.getOrNull(1) ?: calculateEndTime(start)
+                        val totalPrice = fieldPrice.toDouble()
+                        val request = CreateReserveRequest(
+                            bookingDate = selectedDate,
+                            timetableStart = start,
+                            timetableEnd = end,
+                            totalPrice = totalPrice,
+                            fieldId = fieldId
+                        )
+                        try {
+                            val response = fieldsViewModel.createReservation(request)
+                            val json = Uri.encode(Gson().toJson(response))
+                            navController.navigate("${AppScreens.ResumeScreen.route}/$json")
+                        } catch (e: Exception) {
+                            // TODO: mostrar mensaje de error con Snackbar
+                        }
+                    }
+                }) { Text("Sí") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("No") }
+            }
+        )
+    }
 }
+
+fun calculateEndTime(start: String): String {
+    val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val parsed = fmt.parse(start)!!
+    return fmt.format(Calendar.getInstance().apply {
+        time = parsed
+        add(Calendar.HOUR_OF_DAY, 1)
+    }.time)
+}
+
 
 @Composable
 fun TituloCampo(title: String) {
@@ -105,9 +142,7 @@ fun TituloCampo(title: String) {
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
     )
 }
 
@@ -123,81 +158,40 @@ fun BotonRegresar(navController: NavController) {
 }
 
 @Composable
-fun DaySelectorClassic(
-    selectedIndex: Int,
-    onDaySelected: (Int) -> Unit
-) {
+fun DaySelectorClassic(selectedIndex: Int, onDaySelected: (Int) -> Unit) {
     val calendar = Calendar.getInstance()
-    val formatterDay = SimpleDateFormat("dd", Locale.getDefault())
-    val formatterMonth = SimpleDateFormat("MMM", Locale.getDefault())
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
+    val fmtDay = SimpleDateFormat("dd", Locale.getDefault())
+    val fmtMonth = SimpleDateFormat("MMM", Locale.getDefault())
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         repeat(5) { index ->
-            val dayCalendar = calendar.clone() as Calendar
-            dayCalendar.add(Calendar.DAY_OF_YEAR, index)
-
-            val dayText = formatterDay.format(dayCalendar.time)
-            val monthText = formatterMonth.format(dayCalendar.time).uppercase()
-
-            val isSelected = selectedIndex == index
-
+            val dayCal = (calendar.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, index) }
+            val textDay = fmtDay.format(dayCal.time)
+            val textMonth = fmtMonth.format(dayCal.time).uppercase()
+            val isSel = index == selectedIndex
             Column(
                 modifier = Modifier
                     .width(64.dp)
                     .height(64.dp)
                     .padding(3.dp)
-                    .background(
-                        color = if (isSelected) Color(0xFF2ECC71) else Color.White,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Color(0xFF2ECC71),
-                        shape = RoundedCornerShape(4.dp)
-                    )
+                    .background(color = if (isSel) Color(0xFF2ECC71) else Color.White, shape = RoundedCornerShape(4.dp))
+                    .border(1.dp, Color(0xFF2ECC71), RoundedCornerShape(4.dp))
                     .clickable { onDaySelected(index) },
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = dayText,
-                    color = if (isSelected) Color.White else Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = monthText,
-                    color = if (isSelected) Color.White else Color.Black,
-                    fontSize = 12.sp
-                )
+                Text(text = textDay, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else Color.Black)
+                Text(text = textMonth, fontSize = 12.sp, color = if (isSel) Color.White else Color.Black)
             }
         }
     }
 }
 
 @Composable
-fun BloquesHorario(
-    fieldId: Int,
-    horarios: List<TimeSlot>,
-    fieldType: String,
-    fieldNumber: Int,
-    selectedDate: String,
-    navController: NavController
-) {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(600.dp)
-            .verticalScroll(scrollState)
-    ) {
+fun BloquesHorario(horarios: List<TimeSlot>, onSlotClick: (TimeSlot) -> Unit) {
+    val scroll = rememberScrollState()
+    Column(modifier = Modifier.fillMaxWidth().height(600.dp).verticalScroll(scroll)) {
         horarios.forEach { slot ->
             if (slot.reserved) {
-                // Bloque reservado (fondo verde, nombre del cliente)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,36 +200,20 @@ fun BloquesHorario(
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = slot.time,
-                        fontSize = 14.sp,
-                        color = Color.White,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = slot.client.orEmpty(),
-                        fontSize = 14.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(slot.time, fontSize = 14.sp, color = Color.White, modifier = Modifier.weight(1f))
+                    Text(slot.client.orEmpty(), fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             } else {
-                // Bloque libre: clicable para ir a ResumeScreen con fieldId, fecha y hora
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .border(1.dp, Color(0xFF0A0A23))
-                        .clickable {
-                            // Navegar sin diálogo, directamente a ResumeScreen
-                            navController.navigate(
-                                "${AppScreens.ResumeScreen.route}/$fieldId/$selectedDate/${slot.time}"
-                            )
-                        }
+                        .clickable { onSlotClick(slot) }
                         .padding(start = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = slot.time, fontSize = 14.sp)
+                    Text(slot.time, fontSize = 14.sp)
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }

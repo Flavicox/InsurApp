@@ -6,9 +6,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.screens.*
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
+import com.flavicox.insurapp.viewmodel.FieldsViewModel
+import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
+import com.google.gson.Gson
 
 
 @Composable
@@ -79,23 +83,16 @@ fun AppNavigation() {
             }
             // Ruta para ResumeScreen que ahora acepta 3 argumentos:
             composable(
-                "${AppScreens.ResumeScreen.route}/{fieldId}/{selectedDate}/{selectedTime}",
-                arguments = listOf(
-                    navArgument("fieldId") { type = NavType.IntType },
-                    navArgument("selectedDate") { type = NavType.StringType },
-                    navArgument("selectedTime") { type = NavType.StringType }
-                )
+                route = "${AppScreens.ResumeScreen.route}/{reservationJson}",
+                arguments = listOf(navArgument("reservationJson") { type = NavType.StringType })
             ) { backStackEntry ->
-                val fieldId = backStackEntry.arguments?.getInt("fieldId") ?: 0
-                val selectedDate = backStackEntry.arguments?.getString("selectedDate") ?: ""
-                val selectedTime = backStackEntry.arguments?.getString("selectedTime") ?: ""
-                ResumeScreen(
-                    navController = navController,
-                    fieldId = fieldId,
-                    selectedDate = selectedDate,
-                    selectedTime = selectedTime
-                )
+                val json = backStackEntry.arguments?.getString("reservationJson") ?: ""
+                val reservation = Gson().fromJson(json, ReservationResponse::class.java)
+                ResumeScreen(navController = navController, reservation = reservation)
             }
+
+
+
             composable(AppScreens.ValidateCodeScreen.route) {
                 ValidateCodeScreen(navController)
             }
