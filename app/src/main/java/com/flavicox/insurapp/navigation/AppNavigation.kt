@@ -100,9 +100,8 @@ fun AppNavigation() {
                 ValidateCodeScreen(navController)
             }
             composable(
-                "${AppScreens.PaymentScreen.route}/{reserveId}/{fieldLabel}/{date}/{time}/{price}/{isHalfPayment}",
+                "${AppScreens.PaymentScreen.route}/{fieldLabel}/{date}/{time}/{price}/{isHalfPayment}",
                 arguments = listOf(
-                    navArgument("reserveId") { type = NavType.IntType },
                     navArgument("fieldLabel") { type = NavType.StringType },
                     navArgument("date") { type = NavType.StringType },
                     navArgument("time") { type = NavType.StringType },
@@ -110,21 +109,19 @@ fun AppNavigation() {
                     navArgument("isHalfPayment") { type = NavType.BoolType }
                 )
             ) { backStackEntry ->
-                val reserveId      = backStackEntry.arguments?.getInt("reserveId") ?: 0
-                val fieldLabel     = backStackEntry.arguments?.getString("fieldLabel") ?: ""
-                val date           = backStackEntry.arguments?.getString("date") ?: ""
-                val time           = backStackEntry.arguments?.getString("time") ?: ""
-                val price          = backStackEntry.arguments?.getInt("price") ?: 0
-                val isHalfPayment  = backStackEntry.arguments?.getBoolean("isHalfPayment") ?: false
+                val fieldLabel = backStackEntry.arguments?.getString("fieldLabel") ?: ""
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+                val time = backStackEntry.arguments?.getString("time") ?: ""
+                val price = backStackEntry.arguments?.getInt("price") ?: 0
+                val isHalfPayment = backStackEntry.arguments?.getBoolean("isHalfPayment") ?: false
 
                 PaymentScreen(
-                    navController   = navController,
-                    reserveId       = reserveId,
-                    fieldLabel      = fieldLabel,
-                    date            = date,
-                    time            = time,
-                    price           = price,
-                    isHalfPayment   = isHalfPayment
+                    navController = navController,
+                    fieldLabel = fieldLabel,
+                    date = date,
+                    time = time,
+                    price = price,
+                    isHalfPayment = isHalfPayment
                 )
             }
             composable(AppScreens.ConfirmationScreen.route) {
