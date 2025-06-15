@@ -43,8 +43,8 @@ fun ConfirmationScreen(navController: NavController) {
     }
 
     val r = reservation
-    val typeField      = r.fieldId.typeField.replaceFirstChar { it.uppercase() }
-    val numberField    = r.fieldId.numberField
+    val typeField      = r.field.typeField.replaceFirstChar { it.uppercase() }
+    val numberField    = r.field.numberField
     val bookingDate    = r.bookingDate
     val timetableStart = r.timetableStart.removeSuffix(":00")
     val timetableEnd   = r.timetableEnd.removeSuffix(":00")

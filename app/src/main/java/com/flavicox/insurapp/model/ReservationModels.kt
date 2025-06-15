@@ -19,13 +19,29 @@ data class ReservationField(
 ) : Serializable
 
 data class ReservationResponse(
-    val reserveId: Int,
     val bookingDate: String,
     val timetableStart: String,
     val timetableEnd: String,
     val totalPrice: Double,
-    val fieldId: ReservationField,
-    val userId: Int,
     val qrUrl: String,
-    val isValidated: Boolean
+    val status: String,
+    val isValidated: Boolean,
+    val field: ReservationField,
+    val user: ReservationUser,
+    val payments: List<PaymentModel>
+) : Serializable
+
+data class ReservationUser(
+    val name: String,
+    val surname: String,
+    val email: String,
+    val phone: String,
+    val dni: String
+) : Serializable
+
+data class PaymentModel(
+    val paymentId: Int,
+    val amount: Double,
+    val date: String,
+    // agrega otros campos si tu API los envía
 ) : Serializable

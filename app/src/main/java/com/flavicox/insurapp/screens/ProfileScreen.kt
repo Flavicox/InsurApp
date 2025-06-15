@@ -82,7 +82,7 @@ fun ProfileScreen(navController: NavController) {
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Campo: ${r.fieldId.typeField} #${r.fieldId.numberField}")
+                                Text("Campo: ${r.field.typeField} #${r.field.numberField}")
                                 Text("Fecha: ${r.bookingDate}")
                                 Text("Hora: ${r.timetableStart} - ${r.timetableEnd}")
                                 Text("Total: S/. ${r.totalPrice}")
