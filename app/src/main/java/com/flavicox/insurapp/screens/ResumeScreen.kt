@@ -21,8 +21,13 @@ import androidx.navigation.NavController
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.navigation.AppScreens
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.flavicox.insurapp.datastore.UserPreferences
+import com.flavicox.insurapp.model.PaymentRequest
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
+import com.flavicox.insurapp.viewmodel.ResumeViewModel
+import com.flavicox.insurapp.viewmodel.ResumeViewModelFactory
+import kotlinx.coroutines.launch
 
 @Composable
 fun ResumeScreen(
@@ -106,12 +111,11 @@ fun ResumeScreen(
         // Sección: Pago
         Text("Opciones de Pago", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
+        val resumeViewModel: ResumeViewModel = viewModel(factory = ResumeViewModelFactory(context))
+
         PaymentButtons(
-            fieldId = field.fieldId,
-            date = reservation.bookingDate,
-            start = reservation.timetableStart,
-            price = reservation.totalPrice.toInt(),
-            navController = navController
+            reservation = reservation,
+            resumeViewModel = resumeViewModel
         )
     }
 }
@@ -129,29 +133,91 @@ private fun UserDataRow(icon: ImageVector, label: String, value: String) {
 
 @Composable
 private fun PaymentButtons(
-    fieldId: Int, date: String, start: String, price: Int, navController: NavController
+    reservation: ReservationResponse,
+    resumeViewModel: ResumeViewModel
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+
+    val paymentResult by resumeViewModel.paymentResult.collectAsState()
+    val errorMessage by resumeViewModel.errorMessage.collectAsState()
+
+    val user = reservation.user
+    val field = reservation.field
+    val price = reservation.totalPrice.toInt() // Ej. 80
+    val reservationId = reservation.reserveId // ⚠️ ID real de la reserva
+
     Column {
+        if (loading) {
+            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+        }
+
+        errorMessage?.let {
+            Text("❌ Error: $it", color = Color.Red, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+        }
+
+        paymentResult?.let {
+            Text("✅ Pago iniciado con éxito", color = Color(0xFF2ECC71), fontSize = 14.sp)
+            Text("🔑 PaymentIntent: ${it.paymentIntentId}", fontSize = 12.sp)
+        }
+
+        // Botón para pagar 50%
         Button(
             onClick = {
-                navController.navigate(
-                    "${AppScreens.PayScreen.route}/$fieldId/$date/$start/$price/true"
-                )
+                coroutineScope.launch {
+                    loading = true
+                    try {
+                        resumeViewModel.initiatePayment(
+                            reservationId = reservationId,
+                            request = PaymentRequest(
+                                amount = (price / 2) * 100, // <-- cambio importante
+                                clientName = "${user.name} ${user.surname}",
+                                productName = "Reserva ${field.typeField} #${field.numberField}",
+                                phone = user.phone,
+                                email = user.email
+                            )
+                        )
+                    } finally {
+                        loading = false
+                    }
+                }
             },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
             shape = RoundedCornerShape(8.dp)
-        ) { Text("Pagar 50%", color = Color.White) }
+        ) {
+            Text("Pagar 50%", color = Color.White)
+        }
 
+        // Botón para pagar 100%
         Button(
             onClick = {
-                navController.navigate(
-                    "${AppScreens.PayScreen.route}/$fieldId/$date/$start/$price/false"
-                )
+                coroutineScope.launch {
+                    loading = true
+                    try {
+                        resumeViewModel.initiatePayment(
+                            reservationId = reservationId,
+                            request = PaymentRequest(
+                                amount = price * 100, // <-- cambio importante
+                                clientName = "${user.name} ${user.surname}",
+                                productName = "Reserva ${field.typeField} #${field.numberField}",
+                                phone = user.phone,
+                                email = user.email
+                            )
+                        )
+                    } finally {
+                        loading = false
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000B3E)),
             shape = RoundedCornerShape(8.dp)
-        ) { Text("Pagar 100%", color = Color.White) }
+        ) {
+            Text("Pagar 100%", color = Color.White)
+        }
     }
 }

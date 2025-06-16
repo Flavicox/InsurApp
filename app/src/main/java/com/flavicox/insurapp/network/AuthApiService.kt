@@ -4,6 +4,8 @@ import com.flavicox.insurapp.model.CreateReserveRequest
 import com.flavicox.insurapp.model.Field
 import com.flavicox.insurapp.model.LoginRequest
 import com.flavicox.insurapp.model.LoginResponse
+import com.flavicox.insurapp.model.PaymentRequest
+import com.flavicox.insurapp.model.PaymentResponse
 import com.flavicox.insurapp.model.RegisterRequest
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.model.TimeSlot
@@ -74,4 +76,11 @@ interface AuthApiService {
     suspend fun getMyReservations(
         @Header("Authorization") token: String
     ): List<ReservationResponse>
+
+    @POST("api/payment/reserve/{id}")
+    suspend fun initiatePayment(
+        @Path("id") reservationId: Int,
+        @Body body: PaymentRequest,
+        @Header("Authorization") token: String
+    ): PaymentResponse
 }

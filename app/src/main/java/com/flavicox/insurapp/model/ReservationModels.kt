@@ -19,6 +19,7 @@ data class ReservationField(
 ) : Serializable
 
 data class ReservationResponse(
+    val reserveId: Int,
     val bookingDate: String,
     val timetableStart: String,
     val timetableEnd: String,
