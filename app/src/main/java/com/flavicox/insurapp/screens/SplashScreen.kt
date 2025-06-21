@@ -1,6 +1,9 @@
 package com.flavicox.insurapp.screens
 
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
@@ -19,11 +24,14 @@ import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import kotlinx.coroutines.delay
 
+
 @SuppressLint("CustomSplashScreen")
 @Composable
 fun SplashScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+
+    RequestNotificationPermissionIfNeeded() //Cargar permiso para notificacion
 
     LaunchedEffect(Unit) {
         delay(1500) // Tiempo visible de splash
@@ -60,4 +68,34 @@ fun SplashScreen(navController: NavController) {
 
         Text(text = "Cargando...", fontSize = 18.sp)
     }
+
 }
+
+
+@Composable
+fun RequestNotificationPermissionIfNeeded() {
+    val context = LocalContext.current
+
+    // Solo si Android 13+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val permissionState = remember {
+            mutableStateOf(
+                ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            )
+        }
+
+        LaunchedEffect(Unit) {
+            if (!permissionState.value) {
+                ActivityCompat.requestPermissions(
+                    context as ComponentActivity,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
+    }
+}
+

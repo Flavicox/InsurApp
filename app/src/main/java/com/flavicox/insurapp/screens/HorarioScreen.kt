@@ -1,6 +1,14 @@
 package com.flavicox.insurapp.screens
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,17 +28,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.gson.Gson
-import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.model.CreateReserveRequest
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.navigation.AppScreens
+import com.flavicox.insurapp.notifications.scheduleNotification
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,6 +58,9 @@ fun HorarioScreen(
     val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
     val horarios by fieldsViewModel.availableTimes.collectAsState(emptyList())
 
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
+
     var selectedDayIndex by remember { mutableStateOf(0) }
     val calendar = remember { Calendar.getInstance() }
     LaunchedEffect(selectedDayIndex) {
@@ -58,9 +70,6 @@ fun HorarioScreen(
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val selectedDate by remember(calendar) { mutableStateOf(dateFormat.format(calendar.time)) }
 
-    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
-
     LaunchedEffect(selectedDayIndex) {
         fieldsViewModel.getAvailableTimes(fieldId, selectedDate)
     }
@@ -68,6 +77,17 @@ fun HorarioScreen(
     var showConfirm by remember { mutableStateOf(false) }
     var pendingSlot by remember { mutableStateOf<TimeSlot?>(null) }
     val coroutineScope = rememberCoroutineScope()
+
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(context, "Permiso de notificación no concedido", Toast.LENGTH_LONG).show()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopBarCampos(nombreUsuario = fullName) {
@@ -96,7 +116,6 @@ fun HorarioScreen(
                 TextButton(onClick = {
                     showConfirm = false
                     coroutineScope.launch {
-                        // Separamos horas de inicio y fin
                         val parts = pendingSlot!!.time.split(" - ")
                         val start = parts[0]
                         val end = parts.getOrNull(1) ?: calculateEndTime(start)
@@ -110,10 +129,49 @@ fun HorarioScreen(
                         )
                         try {
                             val response = fieldsViewModel.createReservation(request)
+
+                            val fullStartDateTime = "$selectedDate $start"
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val hasPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.POST_NOTIFICATIONS
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasPermission) {
+                                    scheduleNotification(
+                                        context = context,
+                                        title = "¡Prepárate para tu partido!",
+                                        dateTime = fullStartDateTime,
+                                        typeField = typeField,
+                                        numberField = numberField
+                                    )
+
+                                } else {
+                                    notificationPermissionLauncher.launch(
+                                        android.Manifest.permission.POST_NOTIFICATIONS
+                                    )
+                                }
+                            } else {
+                                scheduleNotification(
+                                    context = context,
+                                    title = "¡Prepárate para tu partido!",
+                                    dateTime = fullStartDateTime,
+                                    typeField = typeField,
+                                    numberField = numberField
+                                )
+
+                            }
+
                             val json = Uri.encode(Gson().toJson(response))
                             navController.navigate("${AppScreens.ResumeScreen.route}/$json")
                         } catch (e: Exception) {
-                            // TODO: mostrar mensaje de error con Snackbar
+                            errorMessage = when {
+                                e.message?.contains("409") == true || e.message?.contains("Horario no disponible", true) == true ->
+                                    "Ese horario ya está reservado. Por favor elige otro."
+                                else -> e.message ?: "Ocurrió un error inesperado"
+                            }
+                            showErrorDialog = true
                         }
                     }
                 }) { Text("Sí") }
@@ -121,6 +179,19 @@ fun HorarioScreen(
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) { Text("No") }
             }
+        )
+    }
+
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showErrorDialog = false }) {
+                    Text("Aceptar")
+                }
+            },
+            title = { Text("No se pudo crear la reserva") },
+            text = { Text(errorMessage) }
         )
     }
 }
@@ -133,7 +204,6 @@ fun calculateEndTime(start: String): String {
         add(Calendar.HOUR_OF_DAY, 1)
     }.time)
 }
-
 
 @Composable
 fun TituloCampo(title: String) {
