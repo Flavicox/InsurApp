@@ -6,16 +6,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.navigation.AppScreens
@@ -43,25 +43,29 @@ fun ProfileScreen(navController: NavController) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterStart
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             BotonRegresar(navController)
-            Titulo("Mi Perfil")
+            Text("Mi Perfil", fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Editar",
+                modifier = Modifier.clickable {
+                    navController.navigate(AppScreens.EditProfileScreen.route)
+                }
+            )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Información del Usuario", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(24.dp))
         ProfileInfo(label = "Nombre y Apellido", value = userFullName)
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         ProfileInfo(label = "Teléfono", value = userPhone ?: "No disponible")
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         ProfileInfo(label = "Correo", value = userEmail ?: "No disponible")
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -95,12 +99,20 @@ fun ProfileScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = { showLogoutDialog = true },
-            modifier = Modifier.fillMaxWidth(),
+            onClick = { navController.navigate(AppScreens.ChangePasswordScreen.route) },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Cerrar sesión", color = Color.White)
+            Text("Cambiar Contraseña", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = { showLogoutDialog = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF001F54)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Cerrar Sesión", color = Color.White)
         }
     }
 
@@ -116,14 +128,10 @@ fun ProfileScreen(navController: NavController) {
                     navController.navigate(AppScreens.LoginScreen.route) {
                         popUpTo(0)
                     }
-                }) {
-                    Text("Sí")
-                }
+                }) { Text("Sí") }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancelar") }
             }
         )
     }

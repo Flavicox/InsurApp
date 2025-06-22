@@ -169,6 +169,12 @@ fun AppNavigation() {
             composable(AppScreens.ProfileScreen.route) {
                 ProfileScreen(navController)
             }
+            composable(AppScreens.EditProfileScreen.route) {
+                EditProfileScreen(navController)
+            }
+            composable(AppScreens.ChangePasswordScreen.route) {
+                ChangePasswordScreen(navController)
+            }
         }
     }
 }
