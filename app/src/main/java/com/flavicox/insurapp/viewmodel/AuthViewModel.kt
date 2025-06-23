@@ -98,4 +98,65 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             prefs.clearToken()
         }
     }
+
+    fun updateProfile(name: String, surname: String, phone: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val token = prefs.getToken() ?: return@launch onResult(false)
+
+                val body = mapOf(
+                    "name" to name,
+                    "surname" to surname,
+                    "phone" to phone
+                )
+
+                val response = RetrofitInstance.authApi.updateUserProfile(body, "Bearer $token")
+                if (response.isSuccessful) {
+                    // también actualiza el UserPreferences con los nuevos datos
+                    val currentEmail = prefs.getUserEmail() ?: ""
+                    prefs.saveUserProfile(name, surname, phone, currentEmail)
+                }
+
+                onResult(response.isSuccessful)
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                val token = prefs.getToken() ?: return@launch
+                val profile = RetrofitInstance.authApi.getUserProfile("Bearer $token")
+                prefs.saveUserProfile(
+                    profile.name,
+                    profile.surname,
+                    profile.phone ?: "",
+                    profile.email ?: ""
+                )
+            } catch (e: Exception) {
+                // podrías mostrar un error si quieres
+            }
+        }
+    }
+
+    fun updatePassword(password: String, confirmPassword: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val token = prefs.getToken() ?: return@launch onResult(false)
+
+                val body = mapOf(
+                    "password" to password,
+                    "confirmPassword" to confirmPassword
+                )
+
+                val response = RetrofitInstance.authApi.updatePassword(body, "Bearer $token")
+                onResult(response.isSuccessful)
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
 }

@@ -72,7 +72,7 @@ interface AuthApiService {
 
 
     //PEDIR LISTA DE RESERVACIONES HECHAS POR EL USUARIO
-    @GET("api/reservations/my-reservations")
+    @GET("api/users/my")
     suspend fun getMyReservations(
         @Header("Authorization") token: String
     ): List<ReservationResponse>
@@ -83,4 +83,16 @@ interface AuthApiService {
         @Body body: PaymentRequest,
         @Header("Authorization") token: String
     ): PaymentResponse
+
+    @PATCH("api/users/profile")
+    suspend fun updateUserProfile(
+        @Body updatedProfile: Map<String, String>,
+        @Header("Authorization") token: String
+    ): Response<Unit>
+
+    @PATCH("api/users/password")
+    suspend fun updatePassword(
+        @Body passwordBody: Map<String, String>,
+        @Header("Authorization") token: String
+    ): Response<Unit>
 }

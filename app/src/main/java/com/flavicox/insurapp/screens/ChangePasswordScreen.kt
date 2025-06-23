@@ -70,21 +70,20 @@ fun ChangePasswordScreen(navController: NavController) {
 
         Button(
             onClick = {
-                /*
                 if (password != confirmPassword) {
                     Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                 } else if (password.length < 6) {
                     Toast.makeText(context, "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
                 } else {
-                    viewModel.updatePassword(password) { success, errorMsg ->
+                    viewModel.updatePassword(password, confirmPassword) { success ->
                         if (success) {
                             Toast.makeText(context, "Contraseña actualizada", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
                         } else {
-                            Toast.makeText(context, errorMsg ?: "Error al actualizar", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Error al actualizar contraseña", Toast.LENGTH_LONG).show()
                         }
                     }
-                }*/
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71))

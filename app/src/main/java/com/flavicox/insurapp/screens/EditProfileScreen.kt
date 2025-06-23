@@ -1,7 +1,6 @@
 package com.flavicox.insurapp.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,10 +12,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -27,13 +26,24 @@ fun EditProfileScreen(navController: NavController) {
     val userFullName by viewModel.userFullNameFlow.collectAsState(initial = "")
     val userPhone by viewModel.userPhoneFlow.collectAsState(initial = "")
 
-    val nameInitial = userFullName.split(" ").firstOrNull() ?: ""
-    val surnameInitial = userFullName.split(" ").getOrNull(1) ?: ""
+    var name by remember { mutableStateOf(TextFieldValue("")) }
+    var surname by remember { mutableStateOf(TextFieldValue("")) }
+    var phone by remember { mutableStateOf(TextFieldValue("")) }
 
-    var name by remember { mutableStateOf(TextFieldValue(nameInitial)) }
-    var surname by remember { mutableStateOf(TextFieldValue(surnameInitial)) }
-    var phone by remember { mutableStateOf(TextFieldValue(userPhone ?: "")) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Cargar perfil cuando se ingrese a la pantalla
+    LaunchedEffect(true) {
+        viewModel.loadUserProfile()
+    }
+
+    // Rellenar campos cuando se cargue el perfil
+    LaunchedEffect(userFullName, userPhone) {
+        val parts = userFullName.split(" ")
+        name = TextFieldValue(parts.getOrNull(0) ?: "")
+        surname = TextFieldValue(parts.getOrNull(1) ?: "")
+        phone = TextFieldValue(userPhone ?: "")
+    }
 
     Column(
         modifier = Modifier
@@ -46,6 +56,7 @@ fun EditProfileScreen(navController: NavController) {
             BotonRegresar(navController)
             TituloCampo("Editar mi perfil")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
         Text("Información del Usuario", style = MaterialTheme.typography.titleMedium)
 
@@ -74,22 +85,31 @@ fun EditProfileScreen(navController: NavController) {
         )
 
         Spacer(modifier = Modifier.weight(1f))
+
         Button(
-            onClick = {/*
+            onClick = {
                 coroutineScope.launch {
-                    try {
-                        viewModel.updateProfile(
-                            name.text,
-                            surname.text,
-                            phone.text
-                        )
-                        navController.popBackStack()
-                        Toast.makeText(context, "Perfil actualizado", Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    viewModel.updateProfile(
+                        name.text.trim(),
+                        surname.text.trim(),
+                        phone.text.trim()
+                    ) { success ->
+                        if (success) {
+                            Toast.makeText(
+                                context,
+                                "Perfil actualizado correctamente",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Error al actualizar perfil",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
-                */
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71))
@@ -98,6 +118,7 @@ fun EditProfileScreen(navController: NavController) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier.fillMaxWidth(),
