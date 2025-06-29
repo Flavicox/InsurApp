@@ -1,5 +1,9 @@
 package com.flavicox.insurapp.screens
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +31,9 @@ import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.ResumeViewModel
 import com.flavicox.insurapp.viewmodel.ResumeViewModelFactory
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
 
 @Composable
@@ -148,6 +155,12 @@ private fun PaymentButtons(
     val price = reservation.totalPrice.toInt() // Ej. 80
     val reservationId = reservation.reserveId // ⚠️ ID real de la reserva
 
+    val paymentSheet = remember { PaymentSheet.Builder(::onPaymentSheetResult) }.build()
+
+    var customerConfig by remember { mutableStateOf<PaymentSheet.CustomerConfiguration?>(null) }
+    var clientSecret by remember { mutableStateOf<String?>(null) }
+    val publishableKey = "pk_test_51RVkIOQpnfpZJWEMPz3o71Oda9MNqCzsa1O7SbymgotbNZKMZUPHF2cgKJyfpetJHbiKbuRLoNhjp0VI2wmaFSJ2005369CYmw"
+
     Column {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.padding(8.dp))
@@ -178,6 +191,24 @@ private fun PaymentButtons(
                                 email = user.email
                             )
                         )
+
+                        val response = resumeViewModel.paymentResult.value
+                        if (response != null) {
+                            customerConfig = PaymentSheet.CustomerConfiguration(
+                                id = response.id,
+                                ephemeralKeySecret = response.ephemeralSecret
+                            )
+                            clientSecret = response.clientSecret
+                        }
+
+                        PaymentConfiguration.init(context, publishableKey)
+
+                        val currentConfig = customerConfig
+                        val currentClientSecret = clientSecret
+
+                        if (currentConfig != null && currentClientSecret != null) {
+                            presentPaymentScreen(paymentSheet, currentConfig, currentClientSecret)
+                        }
                     } finally {
                         loading = false
                     }
@@ -208,6 +239,24 @@ private fun PaymentButtons(
                                 email = user.email
                             )
                         )
+
+                        val response = resumeViewModel.paymentResult.value
+                        if (response != null) {
+                            customerConfig = PaymentSheet.CustomerConfiguration(
+                                id = response.id,
+                                ephemeralKeySecret = response.ephemeralSecret
+                            )
+                            clientSecret = response.clientSecret
+                        }
+
+                        PaymentConfiguration.init(context, publishableKey)
+
+                        val currentConfig = customerConfig
+                        val currentClientSecret = clientSecret
+
+                        if (currentConfig != null && currentClientSecret != null) {
+                            presentPaymentScreen(paymentSheet, currentConfig, currentClientSecret)
+                        }
                     } finally {
                         loading = false
                     }
@@ -218,6 +267,34 @@ private fun PaymentButtons(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text("Pagar 100%", color = Color.White)
+        }
+    }
+}
+
+private fun presentPaymentScreen(
+    paymentSheet: PaymentSheet,
+    customerConfig: PaymentSheet.CustomerConfiguration,
+    paymentIntentSecret: String
+) {
+    paymentSheet.presentWithPaymentIntent(
+        paymentIntentSecret,
+        PaymentSheet.Configuration.Builder(merchantDisplayName = "Reserva de Cancha")
+            .customer(customerConfig)
+            .allowsDelayedPaymentMethods(true)
+            .build()
+    )
+}
+
+private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
+    when(paymentSheetResult) {
+        is PaymentSheetResult.Canceled -> {
+            print("Cancelado")
+        }
+        is PaymentSheetResult.Failed -> {
+            print("Pago fallido: ${paymentSheetResult.error}")
+        }
+        is PaymentSheetResult.Completed -> {
+            print("Pago completado")
         }
     }
 }

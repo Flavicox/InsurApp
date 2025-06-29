@@ -96,4 +96,6 @@ dependencies {
 
     implementation (libs.gson)
 
+    implementation("com.stripe:stripe-android:21.2.1")
+
 }
