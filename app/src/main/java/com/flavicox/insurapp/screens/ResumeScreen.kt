@@ -1,18 +1,14 @@
 package com.flavicox.insurapp.screens
 
-import android.app.Activity
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+// ───── Imports ─────
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,12 +17,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.flavicox.insurapp.model.PaymentRequest
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.navigation.AppScreens
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.flavicox.insurapp.datastore.UserPreferences
-import com.flavicox.insurapp.model.PaymentRequest
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.ResumeViewModel
@@ -34,8 +29,11 @@ import com.flavicox.insurapp.viewmodel.ResumeViewModelFactory
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+// ───── Pantalla principal ─────
 @Composable
 fun ResumeScreen(
     navController: NavController,
@@ -51,19 +49,69 @@ fun ResumeScreen(
         return
     }
 
-    val context = LocalContext.current
-    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val userFullName by authViewModel.userFullNameFlow.collectAsState(initial = "")
+    val context      = LocalContext.current
+    val authVM: AuthViewModel       = viewModel(factory = AuthViewModelFactory(context))
+    val resumeVM: ResumeViewModel   = viewModel(factory = ResumeViewModelFactory(context))
+    val coroutineScope              = rememberCoroutineScope()
 
-    val user = reservation.user
+    /* ---------- STATE ---------- */
+    var loadingIntent by remember { mutableStateOf(true) }   // creando PaymentIntent
+    var customerConfig by remember { mutableStateOf<PaymentSheet.CustomerConfiguration?>(null) }
+    var clientSecret   by remember { mutableStateOf<String?>(null) }
+    val errorMessage   by resumeVM.errorMessage.collectAsState()
+
+    /* ---------- CREAR INTENT AL ENTRAR ---------- */
+    LaunchedEffect(reservation.reserveId) {
+        val user  = reservation.user
+        val field = reservation.field
+
+        // 1️⃣ Pedimos el PaymentIntent
+        resumeVM.initiatePayment(
+            reservationId = reservation.reserveId,
+            request = PaymentRequest(
+                amount = reservation.totalPrice.toInt() * 100,          // 100 %
+                clientName = "${user.name} ${user.surname}",
+                productName = "Reserva ${field.typeField} #${field.numberField}",
+                phone = user.phone,
+                email = user.email
+            )
+        )
+
+        // 2️⃣ Esperamos el PRIMER valor no nulo que emita el StateFlow
+        val response = resumeVM
+            .paymentResult
+            .filterNotNull()     // descarta null
+            .first()             // suspende hasta recibir uno
+
+        // 3️⃣ Guardamos datos y habilitamos el botón
+        customerConfig = PaymentSheet.CustomerConfiguration(
+            id = response.id,
+            ephemeralKeySecret = response.ephemeralSecret
+        )
+        clientSecret   = response.clientSecret
+        loadingIntent  = false
+    }
+
+    /* ---------- UI ---------- */
+    val user  = reservation.user
     val field = reservation.field
+    val paymentSheet = remember {
+        PaymentSheet.Builder { result ->
+            onPaymentSheetResult(result) {
+                navController.navigate("${AppScreens.ConfirmationScreen.route}/${reservation.reserveId}") {
+                    popUpTo(AppScreens.ResumeScreen.route) { inclusive = true }
+                }
+            }
+        }}.build()
+    val publishableKey = "pk_test_51RVkIOQpnfpZJWEMPz3o71Oda9MNqCzsa1O7SbymgotbNZKMZUPHF2cgKJyfpetJHbiKbuRLoNhjp0VI2wmaFSJ2005369CYmw"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // TopBar
+
+        /* ---------- TopBar ---------- */
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.ArrowBack,
@@ -78,55 +126,75 @@ fun ResumeScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Sección: Usuario
+        /* ---------- Tarjeta Usuario ---------- */
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(Modifier.padding(16.dp)) {
                 Text("Datos del Usuario", fontSize = 18.sp, color = Color(0xFF0277BD))
                 Spacer(Modifier.height(8.dp))
-                UserDataRow(icon = Icons.Default.Person, label = "Nombre", value = "${user.name} ${user.surname}")
-                UserDataRow(icon = Icons.Default.Person, label = "Correo", value = user.email)
-                UserDataRow(icon = Icons.Default.Person, label = "Teléfono", value = user.phone)
-                UserDataRow(icon = Icons.Default.Person, label = "DNI", value = user.dni)
+                UserDataRow(Icons.Default.Person, "Nombre",  "${user.name} ${user.surname}")
+                UserDataRow(Icons.Default.Person, "Correo",  user.email)
+                UserDataRow(Icons.Default.Person, "Teléfono", user.phone)
+                UserDataRow(Icons.Default.Person, "DNI",     user.dni)
             }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        // Sección: Reserva
+        /* ---------- Tarjeta Reserva ---------- */
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(Modifier.padding(16.dp)) {
                 Text("Detalles de la Reserva", fontSize = 18.sp, color = Color(0xFFF57F17))
                 Spacer(Modifier.height(8.dp))
                 Text("Cancha: ${field.typeField} #${field.numberField}", fontSize = 16.sp)
-                Text("Fecha: ${reservation.bookingDate}", fontSize = 16.sp)
-                Text("Hora: ${reservation.timetableStart} - ${reservation.timetableEnd}", fontSize = 16.sp)
+                Text("Fecha: ${reservation.bookingDate}",                fontSize = 16.sp)
+                Text("Hora:  ${reservation.timetableStart} - ${reservation.timetableEnd}", fontSize = 16.sp)
                 Spacer(Modifier.height(12.dp))
-                Text("Precio total: S/. ${reservation.totalPrice}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Precio total: S/. ${reservation.totalPrice}",
+                    fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         Spacer(Modifier.height(32.dp))
 
-        // Sección: Pago
-        Text("Opciones de Pago", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        /* ---------- Pago ---------- */
+        Text("Pago", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
-        val resumeViewModel: ResumeViewModel = viewModel(factory = ResumeViewModelFactory(context))
 
-        PaymentButtons(
-            reservation = reservation,
-            resumeViewModel = resumeViewModel
-        )
+        if (loadingIntent) {
+            CircularProgressIndicator()
+        } else {
+            errorMessage?.let {
+                Text("❌ $it", color = Color.Red, fontSize = 14.sp)
+            }
+
+            Button(
+                onClick = {
+                    PaymentConfiguration.init(context, publishableKey)
+                    customerConfig?.let { config ->
+                        clientSecret?.let { secret ->
+                            presentPaymentScreen(paymentSheet, config, secret)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = customerConfig != null && clientSecret != null,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Pagar", color = Color.White)
+            }
+        }
     }
 }
 
+/* ───── Fila simple de datos ───── */
 @Composable
 private fun UserDataRow(icon: ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
@@ -138,139 +206,7 @@ private fun UserDataRow(icon: ImageVector, label: String, value: String) {
     }
 }
 
-@Composable
-private fun PaymentButtons(
-    reservation: ReservationResponse,
-    resumeViewModel: ResumeViewModel
-) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var loading by remember { mutableStateOf(false) }
-
-    val paymentResult by resumeViewModel.paymentResult.collectAsState()
-    val errorMessage by resumeViewModel.errorMessage.collectAsState()
-
-    val user = reservation.user
-    val field = reservation.field
-    val price = reservation.totalPrice.toInt() // Ej. 80
-    val reservationId = reservation.reserveId // ⚠️ ID real de la reserva
-
-    val paymentSheet = remember { PaymentSheet.Builder(::onPaymentSheetResult) }.build()
-
-    var customerConfig by remember { mutableStateOf<PaymentSheet.CustomerConfiguration?>(null) }
-    var clientSecret by remember { mutableStateOf<String?>(null) }
-    val publishableKey = "pk_test_51RVkIOQpnfpZJWEMPz3o71Oda9MNqCzsa1O7SbymgotbNZKMZUPHF2cgKJyfpetJHbiKbuRLoNhjp0VI2wmaFSJ2005369CYmw"
-
-    Column {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-        }
-
-        errorMessage?.let {
-            Text("❌ Error: $it", color = Color.Red, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
-        }
-
-        paymentResult?.let {
-            Text("✅ Pago iniciado con éxito", color = Color(0xFF2ECC71), fontSize = 14.sp)
-            Text("🔑 PaymentIntent: ${it.paymentIntentId}", fontSize = 12.sp)
-        }
-
-        // Botón para pagar 50%
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    loading = true
-                    try {
-                        resumeViewModel.initiatePayment(
-                            reservationId = reservationId,
-                            request = PaymentRequest(
-                                amount = (price / 2) * 100, // <-- cambio importante
-                                clientName = "${user.name} ${user.surname}",
-                                productName = "Reserva ${field.typeField} #${field.numberField}",
-                                phone = user.phone,
-                                email = user.email
-                            )
-                        )
-
-                        val response = resumeViewModel.paymentResult.value
-                        if (response != null) {
-                            customerConfig = PaymentSheet.CustomerConfiguration(
-                                id = response.id,
-                                ephemeralKeySecret = response.ephemeralSecret
-                            )
-                            clientSecret = response.clientSecret
-                        }
-
-                        PaymentConfiguration.init(context, publishableKey)
-
-                        val currentConfig = customerConfig
-                        val currentClientSecret = clientSecret
-
-                        if (currentConfig != null && currentClientSecret != null) {
-                            presentPaymentScreen(paymentSheet, currentConfig, currentClientSecret)
-                        }
-                    } finally {
-                        loading = false
-                    }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Pagar 50%", color = Color.White)
-        }
-
-        // Botón para pagar 100%
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    loading = true
-                    try {
-                        resumeViewModel.initiatePayment(
-                            reservationId = reservationId,
-                            request = PaymentRequest(
-                                amount = price * 100, // <-- cambio importante
-                                clientName = "${user.name} ${user.surname}",
-                                productName = "Reserva ${field.typeField} #${field.numberField}",
-                                phone = user.phone,
-                                email = user.email
-                            )
-                        )
-
-                        val response = resumeViewModel.paymentResult.value
-                        if (response != null) {
-                            customerConfig = PaymentSheet.CustomerConfiguration(
-                                id = response.id,
-                                ephemeralKeySecret = response.ephemeralSecret
-                            )
-                            clientSecret = response.clientSecret
-                        }
-
-                        PaymentConfiguration.init(context, publishableKey)
-
-                        val currentConfig = customerConfig
-                        val currentClientSecret = clientSecret
-
-                        if (currentConfig != null && currentClientSecret != null) {
-                            presentPaymentScreen(paymentSheet, currentConfig, currentClientSecret)
-                        }
-                    } finally {
-                        loading = false
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000B3E)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Pagar 100%", color = Color.White)
-        }
-    }
-}
-
+/* ───── Presentar hoja de pago Stripe ───── */
 private fun presentPaymentScreen(
     paymentSheet: PaymentSheet,
     customerConfig: PaymentSheet.CustomerConfiguration,
@@ -285,16 +221,17 @@ private fun presentPaymentScreen(
     )
 }
 
-private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-    when(paymentSheetResult) {
-        is PaymentSheetResult.Canceled -> {
-            print("Cancelado")
-        }
-        is PaymentSheetResult.Failed -> {
-            print("Pago fallido: ${paymentSheetResult.error}")
-        }
+/* ───── Resultado de Stripe ───── */
+private fun onPaymentSheetResult(
+    result: PaymentSheetResult,
+    onSuccess: () -> Unit
+) {
+    when (result) {
+        is PaymentSheetResult.Canceled -> println("Pago cancelado")
+        is PaymentSheetResult.Failed   -> println("Pago fallido: ${result.error}")
         is PaymentSheetResult.Completed -> {
-            print("Pago completado")
+            println("Pago completado")
+            onSuccess() // 🔥 Redirigir luego de pago exitoso
         }
     }
 }

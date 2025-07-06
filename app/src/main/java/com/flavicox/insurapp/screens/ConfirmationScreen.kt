@@ -1,4 +1,3 @@
-// File: com/flavicox/insurapp/screens/ConfirmationScreen.kt
 package com.flavicox.insurapp.screens
 
 import androidx.compose.foundation.layout.*
@@ -17,113 +16,122 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.flavicox.insurapp.R
-import com.flavicox.insurapp.model.ReservationResponse
+import com.flavicox.insurapp.model.ReservationByIdResponse
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
+import java.time.format.TextStyle
 
 @Composable
-fun ConfirmationScreen(navController: NavController) {
-    // Recuperar ReservationResponse del SavedStateHandle de la entrada anterior
-    val reservation: ReservationResponse? =
-        navController
-            .previousBackStackEntry
-            ?.savedStateHandle
-            ?.get<ReservationResponse>("reservation")
+fun ConfirmationScreen(navController: NavController, reservationId: Int) {
 
-    if (reservation == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+    /* ---------- ViewModel y estado ---------- */
+    val context = LocalContext.current
+    val vm: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fullName by vm.userFullNameFlow.collectAsState(initial = "")
+
+    var reservation by remember { mutableStateOf<ReservationByIdResponse?>(null) }
+    var loading     by remember { mutableStateOf(true) }
+    var error       by remember { mutableStateOf<String?>(null) }
+
+    /* ---------- Llamar backend ---------- */
+    LaunchedEffect(reservationId) {
+        vm.fetchReservationById(reservationId) { result ->
+            reservation = result
+            if (result == null) error = "No se pudo obtener la reserva"
+            loading = false
+        }
+    }
+
+    /* ---------- TopBar ---------- */
+    TopBarCampos(
+        nombreUsuario = fullName,
+        onProfileClick = { navController.navigate(AppScreens.ProfileScreen.route) }
+    )
+
+    /* ---------- Contenido ---------- */
+    when {
+        loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return
-    }
 
-    val r = reservation
-    val typeField      = r.field.typeField.replaceFirstChar { it.uppercase() }
-    val numberField    = r.field.numberField
-    val bookingDate    = r.bookingDate
-    val timetableStart = r.timetableStart.removeSuffix(":00")
-    val timetableEnd   = r.timetableEnd.removeSuffix(":00")
-    val qrUrl          = r.qrUrl
-
-    //Para guardar el nombre de usuario del TopBarCampos (HEADER)
-    val context = LocalContext.current
-    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
-
-    Column {
-        TopBarCampos(
-            nombreUsuario = fullName,
-            onProfileClick = {
-                navController.navigate(AppScreens.ProfileScreen.route)
-            }
-        )
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .padding(top = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box (modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp))
-        {
-            BotonRegresar(navController)
-            Titulo("Reserva Confirmada")
+        error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(error!!, color = Color.Red)
         }
-        Spacer(modifier = Modifier.height(15.dp))
 
-        Text(
-            text = "¡Tu reserva está confirmada!",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        reservation != null -> {
+            val r = reservation!!
+            val typeField   = r.field.typeField.replaceFirstChar { it.uppercase() }
+            val numberField = r.field.numberField
+            val timetable   = "${r.timetableStart.removeSuffix(":00")} - " +
+                    r.timetableEnd.removeSuffix(":00")
 
-        Spacer(modifier = Modifier.height(15.dp))
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .padding(top = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                /* Encabezado */
+                Box(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                    IconButton(onClick = {
+                        navController.navigate(AppScreens.ProfileScreen.route) {
+                            popUpTo(0)  // limpia la pila si deseas evitar backstack anterior
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar")
+                    }
+                }
 
-        Text(
-            text = "Gracias por reservar con nosotros. Aquí están los detalles:",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            modifier = Modifier.padding(horizontal = 8.dp),
-            lineHeight = 18.sp
-        )
+                Spacer(Modifier.height(15.dp))
+                Text(
+                    text = "¡Tu reserva está confirmada!",
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+                Spacer(Modifier.height(15.dp))
+                Text(
+                    text = "Gracias por reservar con nosotros. Aquí están los detalles:",
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        lineHeight = 18.sp
+                    ),
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
 
-        ReservationDetailItem(Icons.Default.Tag, "Tipo de Campo", typeField)
-        ReservationDetailItem(Icons.Default.Tag, "Número de Campo", "Campo #$numberField")
-        ReservationDetailItem(Icons.Default.CalendarToday, "Fecha", bookingDate)
-        ReservationDetailItem(Icons.Default.Schedule, "Hora", "$timetableStart - $timetableEnd")
+                /* Detalles */
+                ReservationDetailItem(Icons.Default.Tag, "Tipo de Campo",  typeField)
+                ReservationDetailItem(Icons.Default.Tag, "Número de Campo", "Campo #$numberField")
+                ReservationDetailItem(Icons.Default.CalendarToday, "Fecha", r.bookingDate)
+                ReservationDetailItem(Icons.Default.Schedule, "Hora", timetable)
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
 
-        // Cargar y mostrar el QR desde la URL
-        AsyncImage(
-            model = qrUrl,
-            contentDescription = "Código QR de la reserva",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-        )
+                AsyncImage(
+                    model = r.qrUrl,
+                    contentDescription = "Código QR",
+                    modifier = Modifier.fillMaxWidth().height(180.dp)
+                )
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-                navController.popBackStack(route = AppScreens.ListScreen.route, inclusive = false)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Ver Reservas", color = Color.White)
+                Button(
+                    onClick = {
+                        navController.navigate(AppScreens.ProfileScreen.route)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Ver Reservas", color = Color.White)
+                }
+            }
         }
     }
 }
@@ -131,21 +139,21 @@ fun ConfirmationScreen(navController: NavController) {
 @Composable
 fun ReservationDetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = Color.Black,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
+        Icon(icon, contentDescription = title, tint = Color.Black, modifier = Modifier.size(28.dp))
+        Spacer(Modifier.width(12.dp))
         Column {
-            Text(text = title, fontSize = 12.sp, color = Color.Gray)
-            Text(text = value, fontSize = 14.sp)
+            Text(
+                text = title,
+                style = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = Color.Gray)
+            )
+
+            Text(
+                text = value,
+                style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
+            )
         }
     }
 }

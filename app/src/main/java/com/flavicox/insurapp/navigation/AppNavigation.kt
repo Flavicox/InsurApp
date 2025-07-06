@@ -10,8 +10,6 @@ import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.screens.*
 import com.flavicox.insurapp.viewmodel.AuthViewModel
 import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
-import com.flavicox.insurapp.viewmodel.FieldsViewModel
-import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 import com.google.gson.Gson
 
 
@@ -121,8 +119,12 @@ fun AppNavigation() {
                     isHalfPayment = isHalfPayment
                 )
             }
-            composable(AppScreens.ConfirmationScreen.route) {
-                ConfirmationScreen(navController)
+            composable(
+                "${AppScreens.ConfirmationScreen.route}/{reservationId}",
+                arguments = listOf(navArgument("reservationId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val reservationId = backStackEntry.arguments?.getInt("reservationId") ?: 0
+                ConfirmationScreen(navController, reservationId)
             }
             composable(AppScreens.SplashScreen.route) {
                 SplashScreen(navController)

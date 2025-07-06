@@ -13,6 +13,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.flavicox.insurapp.model.Field
 import com.flavicox.insurapp.model.LoginResponse
+import com.flavicox.insurapp.model.ReservationByIdResponse
+import com.flavicox.insurapp.model.ReservationResponse
 import kotlinx.coroutines.flow.Flow
 
 class AuthViewModel(private val context: Context) : ViewModel() {
@@ -112,7 +114,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
                 val response = RetrofitInstance.authApi.updateUserProfile(body, "Bearer $token")
                 if (response.isSuccessful) {
-                    // también actualiza el UserPreferences con los nuevos datos
                     val currentEmail = prefs.getUserEmail() ?: ""
                     prefs.saveUserProfile(name, surname, phone, currentEmail)
                 }
@@ -136,7 +137,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     profile.email ?: ""
                 )
             } catch (e: Exception) {
-                // podrías mostrar un error si quieres
             }
         }
     }
@@ -155,6 +155,21 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 onResult(response.isSuccessful)
             } catch (e: Exception) {
                 onResult(false)
+            }
+        }
+    }
+
+    fun fetchReservationById(
+        id: Int,
+        onResult: (ReservationByIdResponse?) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val token = prefs.getToken() ?: return@launch onResult(null)
+                val data  = RetrofitInstance.authApi.getReservationById(id, "Bearer $token")
+                onResult(data)
+            } catch (e: Exception) {
+                onResult(null)
             }
         }
     }

@@ -7,6 +7,7 @@ import com.flavicox.insurapp.model.LoginResponse
 import com.flavicox.insurapp.model.PaymentRequest
 import com.flavicox.insurapp.model.PaymentResponse
 import com.flavicox.insurapp.model.RegisterRequest
+import com.flavicox.insurapp.model.ReservationByIdResponse
 import com.flavicox.insurapp.model.ReservationResponse
 import com.flavicox.insurapp.model.TimeSlot
 import com.flavicox.insurapp.model.UserProfile
@@ -71,7 +72,6 @@ interface AuthApiService {
     ): ValidateReservationResponse
 
 
-    //PEDIR LISTA DE RESERVACIONES HECHAS POR EL USUARIO
     @GET("api/users/my")
     suspend fun getMyReservations(
         @Header("Authorization") token: String
@@ -95,4 +95,11 @@ interface AuthApiService {
         @Body passwordBody: Map<String, String>,
         @Header("Authorization") token: String
     ): Response<Unit>
+
+    @GET("api/reservations/{id}")
+    suspend fun getReservationById(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): ReservationByIdResponse
+
 }
