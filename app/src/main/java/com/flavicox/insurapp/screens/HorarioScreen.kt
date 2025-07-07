@@ -1,5 +1,8 @@
 package com.flavicox.insurapp.screens
 
+// ─────────────────────────────────────────────────────────────
+// Imports
+// ─────────────────────────────────────────────────────────────
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Context
@@ -7,15 +10,12 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -31,8 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.flavicox.insurapp.model.CreateReserveRequest
-import com.flavicox.insurapp.model.TimeSlot
+import com.flavicox.insurapp.model.*
 import com.flavicox.insurapp.navigation.AppScreens
 import com.flavicox.insurapp.notifications.scheduleNotification
 import com.flavicox.insurapp.viewmodel.AuthViewModel
@@ -44,6 +43,11 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+// ─────────────────────────────────────────────────────────────
+// Pantalla: HorarioScreen
+// Muestra horarios disponibles/ocupados de un campo y permite
+// crear una reserva.
+// ─────────────────────────────────────────────────────────────
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HorarioScreen(
@@ -54,125 +58,109 @@ fun HorarioScreen(
     typeField: String,
     numberField: Int
 ) {
-    val context = LocalContext.current
-    val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
-    val horarios by fieldsViewModel.availableTimes.collectAsState(emptyList())
+    // ─── ViewModels y estados globales ──────────────────────
+    val context                 = LocalContext.current
+    val authVm: AuthViewModel    = viewModel(factory = AuthViewModelFactory(context))
+    val fieldsVm: FieldsViewModel= viewModel(factory = FieldsViewModelFactory(context))
 
-    val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
+    val fullName by authVm.userFullNameFlow.collectAsState(initial = "")
+    val horarios  by fieldsVm.availableTimes.collectAsState(emptyList())
 
+    // Día seleccionado (0-4) y fecha formateada
     var selectedDayIndex by remember { mutableStateOf(0) }
-    val calendar = remember { Calendar.getInstance() }
-    LaunchedEffect(selectedDayIndex) {
-        calendar.time = Date()
-        calendar.add(Calendar.DAY_OF_YEAR, selectedDayIndex)
-    }
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val selectedDate by remember(calendar) { mutableStateOf(dateFormat.format(calendar.time)) }
-
-    LaunchedEffect(selectedDayIndex) {
-        fieldsViewModel.getAvailableTimes(fieldId, selectedDate)
-    }
-
-    var showConfirm by remember { mutableStateOf(false) }
-    var pendingSlot by remember { mutableStateOf<TimeSlot?>(null) }
-    val coroutineScope = rememberCoroutineScope()
-
-    var showErrorDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (!isGranted) {
-            Toast.makeText(context, "Permiso de notificación no concedido", Toast.LENGTH_LONG).show()
+    val calendar    = remember { Calendar.getInstance() }
+    val dateFormat  = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val selectedDate by remember(calendar) {
+        derivedStateOf {
+            calendar.apply { setTime(Date()); add(Calendar.DAY_OF_YEAR, selectedDayIndex) }
+            dateFormat.format(calendar.time)
         }
     }
 
+    // Al cambiar día: recargar horarios
+    LaunchedEffect(selectedDayIndex) {
+        fieldsVm.getAvailableTimes(fieldId, selectedDate)
+    }
+
+    // Estados para diálogos
+    var showConfirm     by remember { mutableStateOf(false) }
+    var pendingSlot     by remember { mutableStateOf<TimeSlot?>(null) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage    by remember { mutableStateOf("") }
+    val coroutineScope  = rememberCoroutineScope()
+
+    // Permission launcher (Android 13+)
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) Toast.makeText(context, "Permiso de notificación no concedido", Toast.LENGTH_LONG).show()
+    }
+
+    // ─── UI principal ───────────────────────────────────────
     Column(modifier = Modifier.fillMaxSize()) {
+
+        // TopBar con nombre de usuario y acceso a perfil
         TopBarCampos(nombreUsuario = fullName) {
             navController.navigate(AppScreens.ProfileScreen.route)
         }
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+        ) {
+            // Título y botón volver
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp)
+            ) {
                 BotonRegresar(navController)
                 TituloCampo(fieldTitle)
             }
-            DaySelectorClassic(selectedIndex = selectedDayIndex) { selectedDayIndex = it }
+
+            // Selector de día (hoy + 4)
+            DaySelectorClassic(
+                selectedIndex = selectedDayIndex,
+                onDaySelected = { selectedDayIndex = it }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-            BloquesHorario(horarios = horarios) { slot ->
+
+            // Lista de bloques de horario
+            BloquesHorario(horarios) { slot ->
                 pendingSlot = slot
                 showConfirm = true
             }
         }
     }
 
+    // ─── Diálogo: Confirmar reserva ─────────────────────────
     if (showConfirm && pendingSlot != null) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Confirmar reserva") },
-            text = { Text("¿Estás seguro de reservar a las ${pendingSlot!!.time}?") },
+            title  = { Text("Confirmar reserva") },
+            text   = { Text("¿Estás seguro de reservar a las ${pendingSlot!!.time}?") },
             confirmButton = {
                 TextButton(onClick = {
                     showConfirm = false
                     coroutineScope.launch {
-                        val parts = pendingSlot!!.time.split(" - ")
-                        val start = parts[0]
-                        val end = parts.getOrNull(1) ?: calculateEndTime(start)
-                        val totalPrice = fieldPrice.toDouble()
-                        val request = CreateReserveRequest(
-                            bookingDate = selectedDate,
-                            timetableStart = start,
-                            timetableEnd = end,
-                            totalPrice = totalPrice,
-                            fieldId = fieldId
+                        createReservationFlow(
+                            navController,
+                            context,
+                            fieldsVm,
+                            pendingSlot!!,
+                            selectedDate,
+                            fieldId,
+                            fieldPrice,
+                            typeField,
+                            numberField,
+                            notificationPermissionLauncher,
+                            onError = { msg ->
+                                errorMessage = msg
+                                showErrorDialog = true
+                            }
                         )
-                        try {
-                            val response = fieldsViewModel.createReservation(request)
-
-                            val fullStartDateTime = "$selectedDate $start"
-
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                val hasPermission = ContextCompat.checkSelfPermission(
-                                    context,
-                                    android.Manifest.permission.POST_NOTIFICATIONS
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                if (hasPermission) {
-                                    scheduleNotification(
-                                        context = context,
-                                        title = "¡Prepárate para tu partido!",
-                                        dateTime = fullStartDateTime,
-                                        typeField = typeField,
-                                        numberField = numberField
-                                    )
-
-                                } else {
-                                    notificationPermissionLauncher.launch(
-                                        android.Manifest.permission.POST_NOTIFICATIONS
-                                    )
-                                }
-                            } else {
-                                scheduleNotification(
-                                    context = context,
-                                    title = "¡Prepárate para tu partido!",
-                                    dateTime = fullStartDateTime,
-                                    typeField = typeField,
-                                    numberField = numberField
-                                )
-
-                            }
-
-                            val json = Uri.encode(Gson().toJson(response))
-                            navController.navigate("${AppScreens.ResumeScreen.route}/$json")
-                        } catch (e: Exception) {
-                            errorMessage = when {
-                                e.message?.contains("409") == true || e.message?.contains("Horario no disponible", true) == true ->
-                                    "Ese horario ya está reservado. Por favor elige otro."
-                                else -> e.message ?: "Ocurrió un error inesperado"
-                            }
-                            showErrorDialog = true
-                        }
                     }
                 }) { Text("Sí") }
             },
@@ -182,29 +170,115 @@ fun HorarioScreen(
         )
     }
 
+    // ─── Diálogo: Error al crear reserva ────────────────────
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
+            title  = { Text("No se pudo crear la reserva") },
+            text   = { Text(errorMessage) },
             confirmButton = {
-                TextButton(onClick = { showErrorDialog = false }) {
-                    Text("Aceptar")
-                }
-            },
-            title = { Text("No se pudo crear la reserva") },
-            text = { Text(errorMessage) }
+                TextButton(onClick = { showErrorDialog = false }) { Text("Aceptar") }
+            }
         )
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Función auxiliar: Flujo completo para crear la reserva
+// Incluye notificación local y navegación a ResumeScreen.
+// ─────────────────────────────────────────────────────────────
+private suspend fun createReservationFlow(
+    navController: NavController,
+    context: Context,
+    fieldsVm: FieldsViewModel,
+    slot: TimeSlot,
+    selectedDate: String,
+    fieldId: Int,
+    fieldPrice: Int,
+    typeField: String,
+    numberField: Int,
+    notifPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    onError: (String) -> Unit
+) {
+    // Extrae la hora de inicio y fin del TimeSlot seleccionado.
+    // Si no hay fin explícito, se calcula sumando 1 hora al inicio.
+    val (start, end) = slot.time.split(" - ").let { parts ->
+        Pair(
+            parts.first(),
+            parts.getOrNull(1) ?: calculateEndTime(parts.first())
+        )
+    }
+    val totalPrice = fieldPrice.toDouble()
+
+    val request = CreateReserveRequest(
+        bookingDate   = selectedDate,
+        timetableStart= start,
+        timetableEnd  = end,
+        totalPrice    = totalPrice,
+        fieldId       = fieldId
+    )
+
+    try {
+        val response = fieldsVm.createReservation(request)
+        val fullStartDateTime = "$selectedDate $start"
+
+        // Programar notificación (maneja permiso en Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                scheduleNotification(
+                    context     = context,
+                    title       = "¡Prepárate para tu partido!",
+                    dateTime    = fullStartDateTime,
+                    typeField   = typeField,
+                    numberField = numberField
+                )
+            } else {
+                notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            scheduleNotification(
+                context     = context,
+                title       = "¡Prepárate para tu partido!",
+                dateTime    = fullStartDateTime,
+                typeField   = typeField,
+                numberField = numberField
+            )
+        }
+
+        // Navegar a resumen
+        val json = Uri.encode(Gson().toJson(response))
+        navController.navigate("${AppScreens.ResumeScreen.route}/$json")
+
+    } catch (e: Exception) {
+        val msg = when {
+            e.message?.contains("409") == true ||
+                    e.message?.contains("Horario no disponible", true) == true ->
+                "Ese horario ya está reservado. Por favor elige otro."
+            else -> e.message ?: "Ocurrió un error inesperado"
+        }
+        onError(msg)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Utilidad: Calcula hora fin +1 h dado un “HH:mm”
+// ─────────────────────────────────────────────────────────────
 fun calculateEndTime(start: String): String {
     val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val parsed = fmt.parse(start)!!
+    val date = fmt.parse(start)!!
     return fmt.format(Calendar.getInstance().apply {
-        time = parsed
+        time = date
         add(Calendar.HOUR_OF_DAY, 1)
     }.time)
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Título del campo
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun TituloCampo(title: String) {
     Text(
@@ -212,10 +286,15 @@ fun TituloCampo(title: String) {
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
     )
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Botón regresar
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun BotonRegresar(navController: NavController) {
     Icon(
@@ -227,39 +306,59 @@ fun BotonRegresar(navController: NavController) {
     )
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Selector de día (hoy + próximos 4 días)
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun DaySelectorClassic(selectedIndex: Int, onDaySelected: (Int) -> Unit) {
-    val calendar = Calendar.getInstance()
-    val fmtDay = SimpleDateFormat("dd", Locale.getDefault())
-    val fmtMonth = SimpleDateFormat("MMM", Locale.getDefault())
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        repeat(5) { index ->
-            val dayCal = (calendar.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, index) }
-            val textDay = fmtDay.format(dayCal.time)
-            val textMonth = fmtMonth.format(dayCal.time).uppercase()
-            val isSel = index == selectedIndex
+    val calendar  = Calendar.getInstance()
+    val fmtDay    = remember { SimpleDateFormat("dd", Locale.getDefault()) }
+    val fmtMonth  = remember { SimpleDateFormat("MMM", Locale.getDefault()) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        repeat(5) { idx ->
+            val date = (calendar.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, idx) }
+            val textDay   = fmtDay.format(date.time)
+            val textMonth = fmtMonth.format(date.time).uppercase()
+            val selected  = idx == selectedIndex
+
             Column(
                 modifier = Modifier
                     .width(64.dp)
                     .height(64.dp)
                     .padding(3.dp)
-                    .background(color = if (isSel) Color(0xFF2ECC71) else Color.White, shape = RoundedCornerShape(4.dp))
+                    .background(
+                        color = if (selected) Color(0xFF2ECC71) else Color.White,
+                        shape = RoundedCornerShape(4.dp)
+                    )
                     .border(1.dp, Color(0xFF2ECC71), RoundedCornerShape(4.dp))
-                    .clickable { onDaySelected(index) },
+                    .clickable { onDaySelected(idx) },
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = textDay, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else Color.Black)
-                Text(text = textMonth, fontSize = 12.sp, color = if (isSel) Color.White else Color.Black)
+                Text(text = textDay, fontWeight = FontWeight.Bold, color = if (selected) Color.White else Color.Black)
+                Text(text = textMonth, fontSize = 12.sp, color = if (selected) Color.White else Color.Black)
             }
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Bloques de horario (reservado / disponible)
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun BloquesHorario(horarios: List<TimeSlot>, onSlotClick: (TimeSlot) -> Unit) {
     val scroll = rememberScrollState()
-    Column(modifier = Modifier.fillMaxWidth().height(600.dp).verticalScroll(scroll)) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(600.dp)
+            .verticalScroll(scroll)
+    ) {
         horarios.forEach { slot ->
             if (slot.reserved) {
                 Row(

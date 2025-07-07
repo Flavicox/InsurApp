@@ -1,77 +1,60 @@
 package com.flavicox.insurapp.screens
 
+// ─────────────────────────────────────────────────────────────
+// Imports
+// ─────────────────────────────────────────────────────────────
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.flavicox.insurapp.viewmodel.AuthViewModel
-import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import androidx.navigation.NavController
 import com.flavicox.insurapp.R
 import com.flavicox.insurapp.navigation.AppScreens
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import com.flavicox.insurapp.viewmodel.AuthViewModel
+import com.flavicox.insurapp.viewmodel.AuthViewModelFactory
 import com.flavicox.insurapp.viewmodel.FieldsViewModel
 import com.flavicox.insurapp.viewmodel.FieldsViewModelFactory
 
+// ─────────────────────────────────────────────────────────────
+// Pantalla principal de Listado de Campos Deportivos
+// Esta pantalla muestra todos los campos disponibles y permite
+// acceder al proceso de reserva.
+// ─────────────────────────────────────────────────────────────
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun ListScreen(navController: NavController){
-    Scaffold{
+fun ListScreen(navController: NavController) {
+    Scaffold {
         ListBodyComponent(navController)
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Cuerpo principal de la pantalla de campos
+// Muestra el nombre del usuario, los campos y controla la lógica
+// de carga y navegación.
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun ListBodyComponent(navController: NavController) {
     val context = LocalContext.current
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
 
-    var showLogoutDialog by remember { mutableStateOf(false) }
     val fullName by viewModel.userFullNameFlow.collectAsState(initial = "")
-
+    val campos by fieldsViewModel.fields.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    val fieldsViewModel: FieldsViewModel = viewModel(factory = FieldsViewModelFactory(context))
-    val campos by fieldsViewModel.fields.collectAsState()
-
-    // Cargar campos al entrar por primera vez
+    // Cargar los campos disponibles al iniciar
     LaunchedEffect(Unit) {
         fieldsViewModel.loadFields()
     }
@@ -83,17 +66,20 @@ fun ListBodyComponent(navController: NavController) {
                 navController.navigate(AppScreens.ProfileScreen.route)
             }
         )
-        Column (
+
+        Column(
             modifier = Modifier
                 .verticalScroll(scrollState)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start)
-        {
+            horizontalAlignment = Alignment.Start
+        ) {
             Titulo("Seleccionar Campo")
+
             campos.forEach { campo ->
                 val nombre = "${campo.typeField} - Campo ${campo.numberField}"
                 val precio = "S/. ${campo.price}"
+
                 CampoCard(
                     nombre = nombre,
                     precio = precio,
@@ -107,6 +93,7 @@ fun ListBodyComponent(navController: NavController) {
         }
     }
 
+    // Diálogo de cierre de sesión
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -132,6 +119,9 @@ fun ListBodyComponent(navController: NavController) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Título principal
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun Titulo(texto: String) {
     Text(
@@ -145,6 +135,9 @@ fun Titulo(texto: String) {
     )
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Barra superior con nombre y botón de perfil
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun TopBarCampos(
     nombreUsuario: String,
@@ -181,6 +174,10 @@ fun TopBarCampos(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Componente: Tarjeta de Campo Deportivo
+// Muestra datos del campo y permite iniciar la reserva
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun CampoCard(
     nombre: String,
@@ -196,7 +193,7 @@ fun CampoCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // Duración
+            // Duración fija
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(id = R.drawable.schedule),
@@ -209,7 +206,7 @@ fun CampoCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Título
+            // Título del campo
             Text(
                 text = nombre,
                 fontSize = 18.sp,
@@ -220,21 +217,14 @@ fun CampoCard(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp))
 
-            // Precio + Botón
+            // Precio + Botón Reservar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Precio: ",
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = precio,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                Text(text = "Precio: ", fontSize = 14.sp)
+                Text(text = precio, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
                     onClick = onReservarClick,
